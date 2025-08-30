@@ -1,8 +1,9 @@
+// lib/services/question_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import '../data/categories.dart';           // 一般領域（大>中>小）
-import '../data/hisshu_categories.dart';    // 必修（大>中>小：原典表記）
+import '../data/categories.dart';           // domains/majors/mids/topics
+import '../data/hisshu_categories.dart';    // 必修大>中>小
 import '../services/topic_picker.dart';
 import '../services/balanced_index_picker.dart';
 import '../services/settings_service.dart';
@@ -10,13 +11,23 @@ import '../services/settings_service.dart';
 class QuestionService {
   static const String _endpoint = 'https://api.openai.com/v1/chat/completions';
 
-  /// 看護師国試の問題を生成。
-  /// 一般：category=大項目, subcategory=中項目
-  /// 必修：category='必修::大項目', subcategory=null（内部で中/小を選定）
+  /// 看護師国試の問題を生成
+  ///
+  /// 一般／状況設定：
+  ///   - domain: 分野（例「人体の構造と機能」）
+  ///   - major : 大項目（必須）
+  ///   - mid   : 中項目（任意。nullなら大項目配下の全中項目から内部で選定）
+  ///
+  /// 必修：
+  ///   - domain: '必修'
+  ///   - major : 必修の大項目（UIで選択）
+  ///   - mid   : 指定不要（内部で自動）
   static Future<Map<String, dynamic>> fetchQuestion({
-    required String category,
-    required String difficulty,
-    String? subcategory,
+    required String difficulty,  // '必修問題' / '一般問題' / '状況設定問題'
+    required String domain,
+    required String major,
+    String? mid,
+    String? scenarioAspect,      // 'A'〜'E'（状況設定の観点、任意）
   }) async {
     final apiKey = await SettingsService.getApiKey();
     final model  = await SettingsService.getModel();
@@ -24,55 +35,64 @@ class QuestionService {
       throw StateError('OpenAI APIキーが未設定です。設定画面から入力してください。');
     }
 
-    final bool isHisshu = category.startsWith(kHisshuCategory);
-    String? hisshuMajor;
-    if (isHisshu) {
-      final idx = category.indexOf('::');
-      if (idx >= 0 && idx + 2 < category.length) {
-        hisshuMajor = category.substring(idx + 2);
-      }
-    }
+    final bool isHisshu = domain == kHisshuCategory;
 
-    // ===== 内部選定（偏り抑制） =====
-    String? mid;   // 実際に使う中項目
-    String? topic; // 小項目
+    // ===== 実際に使う mid / topic を確定 =====
+    String? resolvedMid;
+    String? topic;
+
     if (isHisshu) {
-      final major = hisshuMajor ?? hisshuMajors.first;
+      // 必修：UIは大項目のみ → 中/小は内部選定
       final mids = hisshuMidsOf(major);
       if (mids.isNotEmpty) {
-        mid = await TopicPicker.pickHisshuMidForMajor(major, mids);
-        final topics = hisshuTopicsOf(major, mid);
+        resolvedMid = await TopicPicker.pickHisshuMidForMajor(major, mids);
+        final topics = hisshuTopicsOf(major, resolvedMid);
         if (topics.isNotEmpty) {
-          topic = await TopicPicker.pick(kHisshuCategory, mid, topics);
+          topic = await TopicPicker.pickTopic(
+            domain: kHisshuCategory,
+            major : major,
+            mid   : resolvedMid,
+            topics: topics,
+          );
         }
       }
-    } else if (subcategory != null && subcategory.isNotEmpty) {
-      mid = subcategory;
-      final topics = topicsOf(category, mid);
-      if (topics.isNotEmpty) {
-        topic = await TopicPicker.pick(category, mid, topics);
+    } else {
+      // 一般/状況設定：中項目は任意
+      if (mid != null && mid.isNotEmpty) {
+        resolvedMid = mid;
+      } else {
+        final mids = midsOf(domain, major);
+        if (mids.isNotEmpty) {
+          resolvedMid = await TopicPicker.pickMidForMajor(
+            domain: domain,
+            major : major,
+            mids  : mids,
+          );
+        }
+      }
+      if (resolvedMid != null && resolvedMid.isNotEmpty) {
+        final topics = topicsOf(domain, major, resolvedMid);
+        if (topics.isNotEmpty) {
+          topic = await TopicPicker.pickTopic(
+            domain: domain,
+            major : major,
+            mid   : resolvedMid,
+            topics: topics,
+          );
+        }
       }
     }
 
     // ===== プロンプト =====
     final system = _buildSystemPrompt();
     final user   = _buildUserPrompt(
-      category   : isHisshu ? kHisshuCategory : category,
-      difficulty : difficulty,
-      hisshuMajor: hisshuMajor,     // 必修の大項目
-      subcategory: mid,             // 自動選定（一般はUI指定）
-      topic      : topic,           // 自動選定（小項目）
+      difficulty    : difficulty,
+      domain        : domain,
+      major         : major,
+      mid           : resolvedMid,
+      topic         : topic,
+      scenarioAspect: scenarioAspect,
     );
-
-    final body = jsonEncode({
-      'model': model,
-      'temperature': 0.6,
-      'response_format': {'type': 'json_object'},
-      'messages': [
-        {'role': 'system', 'content': system},
-        {'role': 'user',   'content': user},
-      ],
-    });
 
     final res = await http.post(
       Uri.parse(_endpoint),
@@ -80,23 +100,25 @@ class QuestionService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $apiKey',
       },
-      body: body,
+      body: jsonEncode({
+        'model': model,
+        'temperature': 0.6,
+        'response_format': {'type': 'json_object'},
+        'messages': [
+          {'role': 'system', 'content': system},
+          {'role': 'user',   'content': user},
+        ],
+      }),
     );
+
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw StateError('OpenAIリクエスト失敗 (${res.statusCode}): ${res.body}');
     }
 
-    // UTF-8 デコードで文字化け防止
     final Map<String, dynamic> data =
     jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final content = (data['choices'] as List).first['message']['content']?.toString() ?? '';
 
-    final choices = data['choices'];
-    if (choices is! List || choices.isEmpty) {
-      throw StateError('OpenAI応答が不正です: choices が空');
-    }
-    final content = choices.first['message']?['content']?.toString() ?? '';
-
-    // JSON抽出
     Map<String, dynamic> jsonOut = {};
     try {
       jsonOut = jsonDecode(content) as Map<String, dynamic>;
@@ -109,35 +131,21 @@ class QuestionService {
       }
     }
 
-    // ---- 正規化・安全化 ----
-    // 問題文
     final String question =
     _pickString(jsonOut, ['question','questionText','text']).trim();
 
-    // 選択肢 → 4択に正規化（多すぎるときは先頭4つ／足りないときはそのまま）
+    // choices → 4択に正規化（List or Map を吸収）
     List<String> opts = _asChoices(jsonOut['choices']);
-    if (opts.length > 4) {
-      opts = List<String>.from(opts.take(4));
-    }
+    if (opts.length > 4) opts = List<String>.from(opts.take(4));
 
-    // 正解インデックス
-    final int? idxFromNum =
+    // 正答インデックス：なければバランサで決定
+    final int? idxNum =
     _asInt(jsonOut['correctIndex'] ?? jsonOut['answer_index'] ?? jsonOut['answerIndex']);
-    final String letterRaw =
-    _pickString(jsonOut, ['correct','correctLetter','answer_key']).trim();
-    final int? idxFromLetter = _letterToIndex(letterRaw);
+    int resolvedCorrectIndex =
+    (idxNum != null && idxNum >= 0 && idxNum < opts.length)
+        ? idxNum
+        : await BalancedIndexPicker.next(length: opts.length.clamp(1, 10));
 
-    int? resolvedCorrectIndex;
-    if (idxFromNum != null && idxFromNum >= 0 && idxFromNum < opts.length) {
-      resolvedCorrectIndex = idxFromNum;
-    } else if (idxFromLetter != null && idxFromLetter >= 0 && idxFromLetter < opts.length) {
-      resolvedCorrectIndex = idxFromLetter;
-    } else {
-      // ★ フォールバック：均等ローテーションでバランス確保（← A固定の原因を解消）
-      resolvedCorrectIndex = await BalancedIndexPicker.next(length: opts.length.clamp(1, 10));
-    }
-
-    // 解説
     final String explanation =
     _pickString(jsonOut, ['explanation','reason','解説']).trim();
 
@@ -147,44 +155,56 @@ class QuestionService {
 
     return {
       'question'     : question,
-      'choices'      : opts,
-      'correctIndex' : resolvedCorrectIndex,
+      'choices'      : opts,                 // List<String>
+      'correctIndex' : resolvedCorrectIndex, // int
       'explanation'  : explanation,
+      'meta': {
+        'domain'    : domain,
+        'major'     : major,
+        'mid'       : resolvedMid,
+        'topic'     : topic,
+        'difficulty': difficulty,
+        if (scenarioAspect != null) 'scenarioAspect': scenarioAspect,
+      }
     };
   }
 
   // ===== Prompts =====
   static String _buildSystemPrompt() {
     return 'あなたは日本の看護師国家試験の出題委員です。'
-        '厚生労働省の出題基準に準拠し、日本語として自然で学術的に正確な択一式（4択）問題を作成します。'
+        '厚労省の出題基準に準拠し、日本語として自然で学術的に正確な択一式（4択）問題を作成します。'
         '出力は必ず JSON オブジェクトのみ。'
         '形式: {"question": string, "choices": [string,string,string,string], "correctIndex": number, "explanation": string}';
   }
 
   static String _buildUserPrompt({
-    required String category,
     required String difficulty,
-    String? hisshuMajor,
-    String? subcategory,
+    required String domain,
+    required String major,
+    String? mid,
     String? topic,
+    String? scenarioAspect, // 'A'〜'E'
   }) {
     final b = StringBuffer();
-    b.writeln('出題形式: $difficulty');            // 必修問題 / 一般問題 / 状況設定問題
-    b.writeln('分野(大項目): $category');           // 必修のときは「必修」
-    if (hisshuMajor != null && hisshuMajor.isNotEmpty) {
-      b.writeln('必修の大項目: $hisshuMajor');       // 例：健康の定義と理解
-    }
-    if (subcategory != null && subcategory.isNotEmpty) {
-      b.writeln('項目(中項目): $subcategory');       // 自動選定
+    b.writeln('出題形式: $difficulty');      // 必修問題 / 一般問題 / 状況設定問題
+    b.writeln('分野: $domain');
+    b.writeln('大項目: $major');
+    if (mid != null && mid.isNotEmpty) {
+      b.writeln('中項目: $mid');
+    } else {
+      b.writeln('中項目: 大項目内から自動選定');
     }
     if (topic != null && topic.isNotEmpty) {
-      b.writeln('小項目(内部選定): $topic');         // 自動選定
+      b.writeln('小項目(内部選定): $topic');
+    }
+    if (difficulty.contains('状況設定') && scenarioAspect != null) {
+      b.writeln('状況設定の観点: $scenarioAspect'); // 'A'〜'E'
     }
     b.writeln('制約:');
-    b.writeln('- choices は 4 つ、いずれも日本語の自然な文（4つ未満は不可）');
-    b.writeln('- correctIndex は 0〜3 の整数で必ず返す（letter ではなく index を推奨）');
+    b.writeln('- choices は 4 つ、いずれも日本語の自然な文');
+    b.writeln('- correctIndex は 0〜3 の整数で必ず返す');
     if (difficulty.contains('状況設定')) {
-      b.writeln('- 問題文は150〜250字程度で、患者背景や現場状況を具体的に設定');
+      b.writeln('- 問題文は150〜250字程度で具体的な状況を提示');
     } else if (difficulty.contains('必修')) {
       b.writeln('- 基礎的知識の確認に焦点');
     }

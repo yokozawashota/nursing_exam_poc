@@ -1,6 +1,9 @@
+// lib/screens/answer_history_screen.dart
 import 'package:flutter/material.dart';
-import '../models/answer_history.dart';
+
 import '../widgets/base_scaffold.dart';
+import '../widgets/app_buttons.dart';
+import '../models/answer_history.dart';
 import 'history_detail_screen.dart';
 
 class AnswerHistoryScreen extends StatefulWidget {
@@ -11,111 +14,85 @@ class AnswerHistoryScreen extends StatefulWidget {
 }
 
 class _AnswerHistoryScreenState extends State<AnswerHistoryScreen> {
-  late Future<List<AnswerRecord>> _future;
+  Future<List<AnswerRecord>>? _future;
 
   @override
   void initState() {
     super.initState();
-    _future = AnswerHistory.all(); // 既存の挙動を維持
-  }
-
-  Future<void> _reload() async {
-    final data = await AnswerHistory.all();
-    if (!mounted) return;
-    setState(() {
-      _future = Future.value(data);
-    });
+    _future = AnswerHistory.instance.all();
   }
 
   @override
   Widget build(BuildContext context) {
     return BaseScaffold(
       title: '解答履歴',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.delete_outline),
+          onPressed: () async {
+            final ok = await showDialog<bool>(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: const Text('履歴を全削除しますか？'),
+                content: const Text('元に戻せません。'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('キャンセル'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('削除'),
+                  ),
+                ],
+              ),
+            ) ??
+                false;
+            if (!ok) return;
+            await AnswerHistory.instance.clear();
+            setState(() => _future = AnswerHistory.instance.all());
+          },
+        ),
+      ],
       body: FutureBuilder<List<AnswerRecord>>(
         future: _future,
         builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
+          if (!snap.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snap.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('読み込みに失敗しました: ${snap.error}'),
-              ),
-            );
-          }
-
-          final items = snap.data ?? [];
+          final items = snap.data!;
           if (items.isEmpty) {
             return const Center(child: Text('履歴はまだありません'));
           }
-
           return ListView.separated(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.only(bottom: 24),
             itemCount: items.length,
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, i) {
-              // 新しい順
-              final r = items[items.length - 1 - i];
+              final r = items[i];
+              final d = (r.domain ?? '').isEmpty ? '未指定' : r.domain!;
+              final when =
+                  '${r.ts.year.toString().padLeft(4, '0')}/${r.ts.month.toString().padLeft(2, '0')}/${r.ts.day.toString().padLeft(2, '0')} '
+                  '${r.ts.hour.toString().padLeft(2, '0')}:${r.ts.minute.toString().padLeft(2, '0')}';
+
               return ListTile(
                 leading: Icon(
-                  r.correct ? Icons.check_circle : Icons.cancel,
-                  color: r.correct ? Colors.teal : Colors.redAccent,
+                  r.isCorrect ? Icons.check_circle : Icons.cancel,
+                  color: r.isCorrect ? Colors.teal : Colors.red,
                 ),
-                title: Text(r.category),
-                subtitle: Text('${_fmt(r.at)} ・ ${r.form}'),
+                title: Text(d),
+                subtitle: Text('$when ・ ${r.difficulty}'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  // ✅ 詳細画面へ遷移（UIのトーンは維持）
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => HistoryDetailScreen(record: r),
-                    ),
-                  );
-                  if (!mounted) return;
-                  _reload(); // 戻ってきたら一応最新化
-                },
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => HistoryDetailScreen(record: r),
+                  ),
+                ),
               );
             },
           );
         },
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.delete_sweep),
-          tooltip: '履歴を全てクリア',
-          onPressed: () async {
-            final ok = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('確認'),
-                content: const Text('履歴を全て削除します。よろしいですか？'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('キャンセル'),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('削除する'),
-                  ),
-                ],
-              ),
-            );
-            if (ok == true) {
-              await AnswerHistory.clear();
-              if (mounted) _reload();
-            }
-          },
-        ),
-      ],
     );
   }
-}
-
-String _fmt(DateTime dt) {
-  String two(int n) => n.toString().padLeft(2, '0');
-  return '${dt.year}/${two(dt.month)}/${two(dt.day)} ${two(dt.hour)}:${two(dt.minute)}';
 }

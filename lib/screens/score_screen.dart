@@ -1,105 +1,100 @@
+// lib/screens/score_screen.dart
 import 'package:flutter/material.dart';
-import '../models/answer_history.dart';
+
 import '../widgets/base_scaffold.dart';
+import '../widgets/app_buttons.dart';
+import '../models/answer_history.dart';
 
 class ScoreScreen extends StatefulWidget {
   const ScoreScreen({super.key});
-
   @override
   State<ScoreScreen> createState() => _ScoreScreenState();
 }
 
 class _ScoreScreenState extends State<ScoreScreen> {
-  late Future<HistorySummary> _future; // 再読み込みできるよう finalにしない
+  late Future<List<AnswerRecord>> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = AnswerHistory.summary();
+    _future = AnswerHistory.instance.all();
   }
 
   @override
   Widget build(BuildContext context) {
     return BaseScaffold(
-      title: 'スコア',
-      body: FutureBuilder<HistorySummary>(
+      title: '成績',
+      body: FutureBuilder<List<AnswerRecord>>(
         future: _future,
         builder: (context, snap) {
-          // ローディングは wait 中だけ
-          if (snap.connectionState == ConnectionState.waiting) {
+          if (!snap.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          // エラー表示
-          if (snap.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('読み込みに失敗しました: ${snap.error}'),
-              ),
-            );
+          final list = snap.data!;
+          final total = list.length;
+          final correct = list.where((e) => e.isCorrect).length;
+          final rate = total == 0 ? 0.0 : correct * 100.0 / total;
+
+          // ★ Null安全にキーを作る
+          final Map<String, int> byDomain = {};
+          for (final r in list) {
+            final d = (r.domain ?? '').trim();
+            final key = d.isEmpty ? 'その他' : d;
+            byDomain[key] = (byDomain[key] ?? 0) + 1;
           }
 
-          final summary = snap.data ??
-              const HistorySummary(
-                total: 0,
-                correct: 0,
-                accuracy: 0.0,
-                byCategory: {},
-                byForm: {},
-              );
-
-          // 履歴0件の空状態
-          if (summary.total == 0) {
-            return _EmptyState(
-              title: 'まだスコアはありません',
-              subtitle: 'まずは問題を解いて結果を確認しましょう。',
-              actionText: '問題へ戻る',
-              onPressed: () => Navigator.of(context).pop(),
-            );
-          }
-
-          // 通常表示
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _HeadlineCard(summary: summary),
-              const SizedBox(height: 16),
-              _FormSection(summary: summary),
-              const SizedBox(height: 16),
-              _CategorySection(summary: summary),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                icon: const Icon(Icons.delete_sweep),
-                label: const Text('履歴を全てクリア'),
-                onPressed: () async {
-                  final ok = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('確認'),
-                      content: const Text('履歴を全て削除します。よろしいですか？'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: const Text('キャンセル'),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('削除する'),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (ok == true) {
-                    await AnswerHistory.clear();
-                    if (mounted) {
-                      setState(() {
-                        _future = AnswerHistory.summary();
-                      });
-                    }
-                  }
-                },
-              ),
-            ],
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _StatTile(
+                  title: '総問題数',
+                  value: '$total',
+                  sub: '正解 $correct / 正答率 ${rate.toStringAsFixed(1)}%',
+                ),
+                const SizedBox(height: 12),
+                const Text('分野ごとの出題数',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: byDomain.entries
+                      .map((e) => Chip(label: Text('${e.key}：${e.value}')))
+                      .toList(),
+                ),
+                const Spacer(),
+                AppButtons.primary(
+                  label: '成績と履歴を全削除',
+                  icon: Icons.delete_outline,
+                  onPressed: () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('全削除しますか？'),
+                        content:
+                        const Text('成績と解答履歴をすべて削除します。元に戻せません。'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('キャンセル'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('削除'),
+                          ),
+                        ],
+                      ),
+                    ) ??
+                        false;
+                    if (!ok) return;
+                    await AnswerHistory.instance.clear();
+                    setState(() => _future = AnswerHistory.instance.all());
+                  },
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -107,141 +102,36 @@ class _ScoreScreenState extends State<ScoreScreen> {
   }
 }
 
-class _HeadlineCard extends StatelessWidget {
-  final HistorySummary summary;
-  const _HeadlineCard({required this.summary});
-
-  @override
-  Widget build(BuildContext context) {
-    final pct = (summary.accuracy * 100).toStringAsFixed(1);
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(Icons.emoji_events, size: 40),
-            const SizedBox(width: 16),
-            Expanded(
-              child: DefaultTextStyle(
-                style: Theme.of(context).textTheme.bodyMedium!,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('累計問題数：${summary.total}問',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 6),
-                    Text('正答：${summary.correct}問'),
-                    Text('正答率：$pct%'),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FormSection extends StatelessWidget {
-  final HistorySummary summary;
-  const _FormSection({required this.summary});
-
-  @override
-  Widget build(BuildContext context) {
-    if (summary.byForm.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    final tiles = summary.byForm.entries.map((e) {
-      final pct = (e.value.accuracy * 100).toStringAsFixed(1);
-      return ListTile(
-        leading: const Icon(Icons.description),
-        title: Text(e.key), // 必修 / 一般 / 状況設定
-        subtitle: Text('正答 ${e.value.correct}/${e.value.total}（$pct%）'),
-      );
-    }).toList();
-
-    return Card(
-      elevation: 0,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const ListTile(
-            leading: Icon(Icons.insights),
-            title: Text('形式別スコア（必修 / 一般 / 状況設定）'),
-          ),
-          const Divider(height: 1),
-          ...tiles,
-        ],
-      ),
-    );
-  }
-}
-
-class _CategorySection extends StatelessWidget {
-  final HistorySummary summary;
-  const _CategorySection({required this.summary});
-
-  @override
-  Widget build(BuildContext context) {
-    if (summary.byCategory.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    final tiles = summary.byCategory.entries.map((e) {
-      final pct = (e.value.accuracy * 100).toStringAsFixed(1);
-      return ListTile(
-        leading: const Icon(Icons.folder_open),
-        title: Text(e.key),
-        subtitle: Text('正答 ${e.value.correct}/${e.value.total}（$pct%）'),
-      );
-    }).toList();
-
-    return Card(
-      elevation: 0,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const ListTile(
-            leading: Icon(Icons.pie_chart),
-            title: Text('分野別スコア'),
-          ),
-          const Divider(height: 1),
-          ...tiles,
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
+class _StatTile extends StatelessWidget {
   final String title;
-  final String subtitle;
-  final String actionText;
-  final VoidCallback onPressed;
-
-  const _EmptyState({
-    required this.title,
-    required this.subtitle,
-    required this.actionText,
-    required this.onPressed,
-  });
+  final String value;
+  final String? sub;
+  const _StatTile({required this.title, required this.value, this.sub});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(subtitle, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onPressed, child: Text(actionText)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.black12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (sub != null) ...[
+                  const SizedBox(height: 4),
+                  Text(sub!, style: const TextStyle(color: Colors.black54)),
+                ],
+              ],
+            ),
+          ),
+          Text(value, style: const TextStyle(fontSize: 24)),
+        ],
       ),
     );
   }
