@@ -2,20 +2,8 @@ name: Build dart-index.json
 
 on:
   push:
-    branches:
-      - 'Ver*'
-      - main
-    paths:
-      - 'lib/**/*.dart'
-      - 'tool/dart_index.dart'
-      - '.github/workflows/dart-index.yml'
+    branches: [ Ver1.0.3 ]   # ← 対象ブランチは必要に応じて変更
   workflow_dispatch:
-  pull_request:
-    branches: [ main ]     # 任意：PRでも生成だけは走らせる
-    paths:
-      - 'lib/**/*.dart'
-      - 'tool/dart_index.dart'
-      - '.github/workflows/dart-index.yml'
 
 permissions:
   contents: write
@@ -24,27 +12,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: dart-lang/setup-dart@v1
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
 
       - name: Generate dart-index.json
-        run: dart run tool/dart_index.dart lib
-
-      # ← ここがポイント：PR では push しない
-      - name: Commit & push if changed
-        if: ${{ github.event_name != 'pull_request' }}
         run: |
-          if git status --porcelain | grep -q 'dart-index.json'; then
-            git config user.name  "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add dart-index.json
-            git commit -m "chore: update dart-index.json [skip ci]"
-            git push
-          else
+          dart --version
+          dart pub get
+          dart run tool/dart_index.dart > dart-index.json
+
+      - name: Commit dart-index.json (if changed)
+        run: |
+          if git diff --quiet --exit-code -- dart-index.json; then
             echo "No changes in dart-index.json"
+          else
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add dart-index.json
+            git commit -m "ci: update dart-index.json"
+            git push
           fi
