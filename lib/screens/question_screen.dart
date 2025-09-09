@@ -151,16 +151,12 @@ class _QuestionScreenState extends State<QuestionScreen> {
         }
         _choices = toMap;
 
-        // 正答：correctIndex（int）優先 → 文字（A/B/C/D）も許容
         String? correctLetter;
         final idx = data['correctIndex'];
         if (idx is int && idx >= 0 && idx < 4) {
           correctLetter = ['A', 'B', 'C', 'D'][idx];
         } else {
-          correctLetter = (data['correct'] ??
-              data['correctAnswer'] ??
-              data['answer'])
-              ?.toString();
+          correctLetter = (data['correct'] ?? data['correctAnswer'] ?? data['answer'])?.toString();
         }
         _correct = correctLetter ?? '';
 
