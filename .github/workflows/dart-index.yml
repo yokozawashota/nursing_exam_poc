@@ -2,78 +2,40 @@ name: Build dart-index.json
 
 on:
   push:
-    # Dartが変更された時だけ動く（このJSON更新だけのpushは再実行しない）
+    branches: [ main, 'Ver*' ]   # ← Ver1.0.3 のようなブランチでも動く
     paths:
-      - "**/*.dart"
-      - ".github/workflows/dart-index.yml"
-  workflow_dispatch:
+      - 'lib/**/*.dart'
+      - 'tool/dart_index.dart'
+      - '.github/workflows/dart-index.yml'
+  pull_request:
+    paths:
+      - 'lib/**/*.dart'
+      - 'tool/dart_index.dart'
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  build-index:
+    # bot が dart-index.json をコミットした push での再実行を抑止（無限ループ防止）
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
       - name: Generate dart-index.json
-        run: |
-          python3 - << 'PY'
-          import os, json, hashlib, time
+        run: dart run tool/dart_index.dart lib
 
-          repo   = os.getenv('GITHUB_REPOSITORY','')
-          commit = os.getenv('GITHUB_SHA','')
-
-          EXCLUDE_PARTS = (
-              '/.git/', '/build/', '/.dart_tool/', '/Pods/',
-              '/.gradle/', '/.idea/', '/.vscode/'
-          )
-
-          files = []
-          for root, dirs, filenames in os.walk('.', topdown=True):
-              # ディレクトリの刈り込み
-              dirs[:] = [d for d in dirs if all(p not in os.path.join(root, d)+'/' for p in EXCLUDE_PARTS)]
-              for fn in filenames:
-                  if not fn.endswith('.dart'):
-                      continue
-                  path = os.path.join(root, fn)
-                  rel  = os.path.relpath(path, '.').replace('\\','/')
-                  if any(p in f'/{rel}'+'/' for p in EXCLUDE_PARTS):
-                      continue
-                  with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-                      content = f.read()
-                  sha = hashlib.sha256(content.encode('utf-8')).hexdigest()
-                  files.append({
-                      "path": rel,
-                      "sha256": sha,
-                      "size": len(content.encode('utf-8')),
-                      "language": "dart",
-                      "content": content
-                  })
-
-          files.sort(key=lambda x: x["path"])
-          out = {
-              "generated_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-              "repo": repo,
-              "commit": commit,
-              "file_count": len(files),
-              "files": files
-          }
-          with open('dart-index.json', 'w', encoding='utf-8') as f:
-              json.dump(out, f, ensure_ascii=False, indent=2)
-          PY
-
-      - name: Commit and push index
-        run: |
-          if git diff --quiet -- dart-index.json; then
-            echo "No changes in dart-index.json"
-            exit 0
-          fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dart-index.json
-          git commit -m "chore: update dart-index.json [skip ci]"
-          git push
+      # 変更があるときだけコミット＆プッシュ
+      - name: Commit & push if changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore(index): update dart-index.json [skip ci]'
+          file_pattern: dart-index.json
+          branch: ${{ github.ref_name }}
