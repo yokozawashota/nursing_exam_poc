@@ -2,58 +2,32 @@ name: Build dart-index.json
 
 on:
   push:
-    branches: [ Ver1.0.3 ]   # ←対象ブランチ。必要なら main などに変更OK
-  workflow_dispatch:          # 手動実行も可
+    branches: ['**']
+    paths:
+      - 'lib/**/*.dart'
+      - 'tool/dart_index.dart'
+      - '.github/workflows/dart-index.yml'
+  workflow_dispatch:
 
 permissions:
-  contents: write             # 生成物をコミットするために必須
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
       - name: Generate dart-index.json
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import os, json
-          from datetime import datetime, timezone
-
-          files = []
-          for root, dirs, fs in os.walk('lib'):
-              for f in fs:
-                  if not f.endswith('.dart'):
-                      continue
-                  p = os.path.join(root, f)
-                  with open(p, 'r', encoding='utf-8', errors='ignore') as fh:
-                      content = fh.read()
-                  files.append({
-                      "path": p.replace("\\","/"),
-                      "size": len(content.encode('utf-8')),
-                      "content": content
-                  })
-
-          out = {
-              "generatedAt": datetime.now(timezone.utc).isoformat(),
-              "count": len(files),
-              "files": files
-          }
-          with open('dart-index.json', 'w', encoding='utf-8') as outfh:
-              json.dump(out, outfh, ensure_ascii=False, indent=2)
-          PY
-          echo "Wrote dart-index.json"
-
+        run: dart tool/dart_index.dart > dart-index.json
       - name: Commit dart-index.json
-        shell: bash
         run: |
-          set -e
-          if git diff --quiet -- dart-index.json; then
-            echo "No changes to commit."
-            exit 0
+          if git diff --quiet --exit-code -- dart-index.json; then
+            echo "No changes, skip commit"; exit 0
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
