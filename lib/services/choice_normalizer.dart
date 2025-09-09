@@ -2,7 +2,6 @@
 //
 // モデルが返す JSON から choices と正答を正規化するユーティリティ。
 // QuestionService 以外からも再利用できるよう公開クラスで提供。
-
 class ChoiceItem {
   final String text;
   final bool isCorrect;
