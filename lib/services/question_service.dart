@@ -2,7 +2,6 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
-
 import '../data/categories.dart';            // domains/majors/mids/topics（一般・状況設定）
 import '../data/hisshu_categories.dart';     // 必修：大>中>小
 import '../services/topic_picker.dart';
