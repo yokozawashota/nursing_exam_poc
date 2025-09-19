@@ -1,33 +1,25 @@
 // lib/services/question_service.dart
 import 'dart:convert';
-import 'dart:math';
 import 'package:http/http.dart' as http;
 
-import '../data/categories.dart';           // domains/majors/mids/topics（一般・状況設定）
-import '../data/hisshu_categories.dart';    // 必修：大>中>小
+import '../data/hisshu_categories.dart';  // kHisshuCategory（定数のみ利用）
 import '../services/topic_picker.dart';
 import '../services/settings_service.dart';
 
-// ★ 追加：選択肢正規化ユーティリティ
-import 'choice_normalizer.dart';
+import 'prompt_builder.dart';        // system/user プロンプト組み立て
+import 'response_parser.dart';       // API応答 → 画面向け Map に正規化
+import 'category_repository.dart';   // 型付きツリーから mid/topic を選定
+import '../models/category_models.dart';
 
 class QuestionService {
   static const String _endpoint = 'https://api.openai.com/v1/chat/completions';
-  static final Random _rng = Random();
 
-  /// 看護師国試の問題を生成
-  ///
-  /// [difficulty] : '必修問題' / '一般問題' / '状況設定問題'
-  /// [domain]     : 分野（例「人体の構造と機能」, '必修' は kHisshuCategory を使用）
-  /// [major]      : 大項目（必須）
-  /// [mid]        : 中項目（任意。null なら内部で自動選定）
+  /// 看護師国試の問題を生成（戻り値は画面がそのまま使える Map 形式）
   static Future<Map<String, dynamic>> fetchQuestion({
     required String difficulty,
     required String domain,
     required String major,
     String? mid,
-    // ※ もし呼び出し側で `scenarioAspect:` を渡している構成なら、
-    //    ここに `String? scenarioAspect,` を残してください（未使用でもOK）。
     String? scenarioAspect,
   }) async {
     final apiKey = await SettingsService.getApiKey();
@@ -36,47 +28,81 @@ class QuestionService {
       throw StateError('OpenAI APIキーが未設定です。設定画面から入力してください。');
     }
 
+    // ===== 必修／一般／状況設定の分岐 =====
     final bool isHisshu = domain == kHisshuCategory;
 
-    // ===== 実際に使う mid / topic を確定 =====
+    // 今回使う mid / topic を確定（未指定は内部で安全に選定）
     String? resolvedMid;
     String? topic;
 
     if (isHisshu) {
-      // 必修：UIは大項目のみ → 中/小は内部
-      final mids = hisshuMidsOf(major);
+      // ---------- 必修：型付きツリーから mid / topic を選定 ----------
+      final DomainCategory tree = CategoryRepository.buildHisshuTree();
+
+      // majorノード（なければ先頭 or 空ノード）
+      final MajorCategory majorNode = tree.majors.firstWhere(
+            (m) => m.id == major,
+        orElse: () => tree.majors.isNotEmpty
+            ? tree.majors.first
+            : MajorCategory(id: major, label: major, mids: const []),
+      );
+
+      // mid 候補一覧
+      final mids = majorNode.mids.map((m) => m.id).toList(growable: false);
       if (mids.isNotEmpty) {
-        resolvedMid = await TopicPicker.pickHisshuMidForMajor(major, mids);
-        final topics = hisshuTopicsOf(major, resolvedMid);
+        resolvedMid = await TopicPicker.pickHisshuMidForMajor(majorNode.id, mids);
+
+        // topic 候補
+        final MidCategory? midNode = _findMidNode(majorNode, resolvedMid);
+        final topics = (midNode?.topics ?? const <Topic>[])
+            .map((t) => t.label)
+            .toList(growable: false);
+
         if (topics.isNotEmpty) {
           topic = await TopicPicker.pickTopic(
             domain: kHisshuCategory,
-            major : major,
+            major : majorNode.id,
             mid   : resolvedMid,
             topics: topics,
           );
         }
       }
     } else {
-      // 一般/状況設定：中項目は任意。未指定なら内部で選定。
+      // ---------- 一般/状況設定：型付きツリーから mid / topic を選定 ----------
+      final DomainCategory tree = CategoryRepository.buildGeneralDomainTree(domain);
+
+      // majorノード（なければ先頭 or 空ノード）
+      final MajorCategory majorNode = tree.majors.firstWhere(
+            (m) => m.id == major,
+        orElse: () => tree.majors.isNotEmpty
+            ? tree.majors.first
+            : MajorCategory(id: major, label: major, mids: const []),
+      );
+
+      // mid 指定があれば優先、なければ TopicPicker で選定
       if (mid != null && mid.isNotEmpty) {
         resolvedMid = mid;
       } else {
-        final mids = midsOf(domain, major);
+        final mids = majorNode.mids.map((m) => m.id).toList(growable: false);
         if (mids.isNotEmpty) {
           resolvedMid = await TopicPicker.pickMidForMajor(
             domain: domain,
-            major : major,
+            major : majorNode.id,
             mids  : mids,
           );
         }
       }
+
       if (resolvedMid != null && resolvedMid!.isNotEmpty) {
-        final topics = topicsOf(domain, major, resolvedMid);
+        final MidCategory? midNode = _findMidNode(majorNode, resolvedMid);
+        final topics = (midNode?.topics ?? const <Topic>[])
+            .map((t) => t.label)
+            .toList(growable: false);
+
         if (topics.isNotEmpty) {
           topic = await TopicPicker.pickTopic(
             domain: domain,
-            major : major,
+            major : majorNode.id,
             mid   : resolvedMid,
             topics: topics,
           );
@@ -85,16 +111,17 @@ class QuestionService {
     }
 
     // ===== プロンプト =====
-    final system = _buildSystemPrompt();
-    final user   = _buildUserPrompt(
+    final system = PromptBuilder.buildSystemPrompt();
+    final user   = PromptBuilder.buildUserPrompt(
       difficulty: difficulty,
       domain    : domain,
       major     : major,
       mid       : resolvedMid,
       topic     : topic,
-      // ここで scenarioAspect を使う設計なら、適宜 user に書き込みを追加
+      scenarioAspect: scenarioAspect,
     );
 
+    // ===== API 呼び出し =====
     final res = await http.post(
       Uri.parse(_endpoint),
       headers: {
@@ -116,128 +143,35 @@ class QuestionService {
       throw StateError('OpenAIリクエスト失敗 (${res.statusCode}): ${res.body}');
     }
 
-    final Map<String, dynamic> data =
+    // ===== レスポンス標準化 =====
+    final Map<String, dynamic> root =
     jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-    final content = (data['choices'] as List).first['message']['content']?.toString() ?? '';
+    final String content =
+        (root['choices'] as List).first['message']['content']?.toString() ?? '';
 
-    Map<String, dynamic> jsonOut = {};
-    try {
-      jsonOut = jsonDecode(content) as Map<String, dynamic>;
-    } catch (_) {
-      final m = RegExp(r'\{[\s\S]*\}').firstMatch(content);
-      if (m != null) {
-        jsonOut = jsonDecode(m.group(0)!) as Map<String, dynamic>;
-      } else {
-        throw StateError('JSON抽出に失敗: $content');
-      }
-    }
-
-    // ===== 正規化 =====
-    final String question = _pickString(jsonOut, ['question','questionText','text']).trim();
-    if (question.isEmpty) {
-      throw StateError('生成結果が不完全です（question が空）');
-    }
-
-    // choices（配列/マップ いずれにも対応）＋ correct（index/letter いずれにも対応）
-    final NormalizedChoices normalized = ChoiceNormalizer.normalize(jsonOut);
-
-    // --- 完全一様ランダムに正答位置を決めるため、ここでシャッフルして A〜D を振り直す ---
-    final shuffled = List<ChoiceItem>.from(normalized.items);
-    shuffled.shuffle(_rng); // Fisher–Yates（List.shuffle は均等）
-
-    // A-D ラベルを再付与し、正答ラベルとラショナーレを再マッピング
-    const letters = ['A','B','C','D','E','F','G','H'];
-    final Map<String, String> outChoices = {};
-    final Map<String, String> outRationales = {};
-    String? correctLetter;
-
-    for (var i = 0; i < shuffled.length && i < letters.length; i++) {
-      final label = letters[i];
-      final item  = shuffled[i];
-      outChoices[label] = item.text;
-      if (item.rationale != null && item.rationale!.trim().isNotEmpty) {
-        outRationales[label] = item.rationale!;
-      }
-      if (item.isCorrect) correctLetter = label;
-    }
-
-    // 念のため 2〜4択に制限（UIは存在キーのみ描画）
-    final limitedChoices = Map<String,String>.fromEntries(
-      outChoices.entries.take(4),
-    );
-    final limitedRationales = Map<String,String>.fromEntries(
-      outRationales.entries.where((e) => limitedChoices.containsKey(e.key)),
+    // content → 画面が使える Map に整形（シャッフル・4択制限・正答追随を含む）
+    final out = ResponseParser.parseContentToQuestion(
+      content,
+      difficulty: difficulty,
+      domain    : domain,
+      major     : major,
+      mid       : resolvedMid,
+      topic     : topic,
     );
 
-    // 正答ラベルが消えていないか最終確認（万一なければ先頭を正答に）
-    correctLetter ??= limitedChoices.keys.isNotEmpty ? limitedChoices.keys.first : 'A';
+    return out;
+  }
 
-    final String explanation =
-    _pickString(jsonOut, ['explanation','reason','解説']).trim();
-
-    return {
-      'question'    : question,
-      'choices'     : limitedChoices,     // Map<A-D, text>
-      'correct'     : correctLetter,      // 'A' | 'B' | 'C' | 'D'
-      'explanation' : explanation,
-      if (limitedRationales.isNotEmpty) 'rationales': limitedRationales,
-      // 参考情報（履歴詳細で使える）
-      'meta': {
-        'difficulty': difficulty,
-        'domain'    : domain,
-        'major'     : major,
-        'mid'       : resolvedMid,
-        'topic'     : topic,
+  /// majorNode と midId から MidCategory を安全に取得（なければ先頭、なければ null）
+  static MidCategory? _findMidNode(MajorCategory? majorNode, String? midId) {
+    if (majorNode == null || majorNode.mids.isEmpty) return null;
+    if (midId != null && midId.isNotEmpty) {
+      try {
+        return majorNode.mids.firstWhere((x) => x.id == midId);
+      } catch (_) {
+        // 見つからなければ先頭へフォールバック
       }
-    };
-  }
-
-  // ===== Prompts =====
-  static String _buildSystemPrompt() {
-    return 'あなたは日本の看護師国家試験の出題委員です。'
-        '厚労省の出題基準に準拠し、日本語として自然で学術的に正確な択一式（4択）問題を作成します。'
-        '出力は必ず JSON オブジェクトのみ。'
-        '形式の例: {"question": string, "choices": [string,string,string,string], "correctIndex": number, "explanation": string, "rationales": {"A": "...", "B": "...", "C": "...", "D": "..."}}';
-  }
-
-  static String _buildUserPrompt({
-    required String difficulty,
-    required String domain,
-    required String major,
-    String? mid,
-    String? topic,
-  }) {
-    final b = StringBuffer();
-    b.writeln('出題形式: $difficulty');      // 必修問題 / 一般問題 / 状況設定問題
-    b.writeln('分野: $domain');              // 例：人体の構造と機能
-    b.writeln('大項目: $major');            // 例：1. 細胞と組織
-    if (mid != null && mid.isNotEmpty) {
-      b.writeln('中項目: $mid');            // 例：A. 細胞の構造
-    } else {
-      b.writeln('中項目: 大項目内から自動選定');
     }
-    if (topic != null && topic.isNotEmpty) {
-      b.writeln('小項目(内部選定): $topic');
-    }
-    b.writeln('制約:');
-    b.writeln('- choices は 4 つ（配列または A〜D のマップのどちらでも良い）');
-    b.writeln('- 正答を correctIndex (0〜3) か correct (A〜D) で必ず返す');
-    if (difficulty.contains('状況設定')) {
-      b.writeln('- 問題文は150〜250字程度で具体的な状況を提示');
-    } else if (difficulty.contains('必修')) {
-      b.writeln('- 基礎的知識の確認に焦点');
-    }
-    b.writeln('- 各選択肢にはもっともらしい理由があるように（可能なら rationales も返す）');
-    b.writeln('- 最新の標準的看護実践に合致');
-    return b.toString();
-  }
-
-  // ===== Helpers =====
-  static String _pickString(Map<String, dynamic> map, List<String> keys) {
-    for (final k in keys) {
-      final v = map[k];
-      if (v is String && v.trim().isNotEmpty) return v;
-    }
-    return '';
+    return majorNode.mids.first;
   }
 }

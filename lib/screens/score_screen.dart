@@ -5,6 +5,9 @@ import '../widgets/base_scaffold.dart';
 import '../widgets/app_buttons.dart';
 import '../models/answer_history.dart';
 
+// ★ 追加：棒グラフパネル
+import '../widgets/score_chart_panel.dart';
+
 class ScoreScreen extends StatefulWidget {
   const ScoreScreen({super.key});
   @override
@@ -12,7 +15,7 @@ class ScoreScreen extends StatefulWidget {
 }
 
 class _ScoreScreenState extends State<ScoreScreen> {
-  late Future<List<AnswerRecord>> _future;
+  Future<List<AnswerRecord>>? _future;
 
   @override
   void initState() {
@@ -35,11 +38,11 @@ class _ScoreScreenState extends State<ScoreScreen> {
           final correct = list.where((e) => e.isCorrect).length;
           final rate = total == 0 ? 0.0 : correct * 100.0 / total;
 
-          // ★ Null安全にキーを作る
+          // 分野ごとの出題数（NULL/空文字は '未指定' に寄せる）
           final Map<String, int> byDomain = {};
           for (final r in list) {
             final d = (r.domain ?? '').trim();
-            final key = d.isEmpty ? 'その他' : d;
+            final key = d.isEmpty ? '未指定' : d;
             byDomain[key] = (byDomain[key] ?? 0) + 1;
           }
 
@@ -53,9 +56,15 @@ class _ScoreScreenState extends State<ScoreScreen> {
                   value: '$total',
                   sub: '正解 $correct / 正答率 ${rate.toStringAsFixed(1)}%',
                 ),
+
+                // ★ ここに棒グラフ（分野別の正答率）を追加
+                const ScoreChartPanel(),
+
                 const SizedBox(height: 12),
-                const Text('分野ごとの出題数',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  '分野ごとの出題数',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -73,8 +82,7 @@ class _ScoreScreenState extends State<ScoreScreen> {
                       context: context,
                       builder: (_) => AlertDialog(
                         title: const Text('全削除しますか？'),
-                        content:
-                        const Text('成績と解答履歴をすべて削除します。元に戻せません。'),
+                        content: const Text('成績と解答履歴をすべて削除します。元に戻せません。'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context, false),

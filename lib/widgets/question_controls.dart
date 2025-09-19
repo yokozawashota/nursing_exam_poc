@@ -1,159 +1,258 @@
 import 'package:flutter/material.dart';
 import 'app_buttons.dart';
 
+/// 出題コントロール一式（表示専用コンポーネント）
+/// - 画面の見た目と導線は question_screen.dart と同一になるよう再現
+/// - ロジック/状態は親（QuestionScreen）で保持し、ここはイベント通知のみ行う
 class QuestionControls extends StatelessWidget {
   const QuestionControls({
     super.key,
-    required this.selectedDifficulty,
-    required this.selectedCategory,
-    required this.difficulties,
-    required this.categories,
-    required this.onDifficultyChanged,
-    required this.onCategoryChanged,
-    required this.onGeneratePressed,
+    // 共通
+    required this.mode, // '必修問題' / '一般問題' / '状況設定問題'
+    required this.onModeChanged,
     required this.isLoading,
-    this.generateIcon,
+    required this.onGeneratePressed,
+
+    // 一般/状況設定 共通
+    required this.domainItems,
+    required this.selectedDomain,
+    required this.onDomainChanged,
+
+    required this.majorItems,
+    required this.selectedMajor,
+    required this.onMajorChanged,
+
+    required this.useMid,
+    required this.onUseMidChanged,
+
+    required this.midItems,
+    required this.selectedMid,
+    required this.onMidChanged,
+
+    // 必修
+    required this.hisshuMajorItems,
+    required this.selectedHisshuMajor,
+    required this.onHisshuMajorChanged,
+
+    // 状況設定 追加
+    required this.scenarioAspects, // Map<'A'..'E', 'A. ...'>
+    required this.selectedScenarioAspectCode, // String? 'A'..'E'
+    required this.onScenarioAspectChanged,
   });
 
-  final String selectedDifficulty;
-  final String selectedCategory;
+  // ===== プロパティ =====
 
-  final List<String> difficulties;
-  final List<String> categories;
-
-  final ValueChanged<String> onDifficultyChanged;
-  final ValueChanged<String> onCategoryChanged;
-
-  final VoidCallback? onGeneratePressed;
+  // 共通
+  final String mode;
+  final ValueChanged<String> onModeChanged;
   final bool isLoading;
+  final VoidCallback onGeneratePressed;
 
-  /// ボタンアイコンを差し替えたい時用（未指定なら app_buttons 側のデフォルト）
-  final IconData? generateIcon;
+  // 一般/状況設定 共通
+  final List<String> domainItems;
+  final String selectedDomain;
+  final ValueChanged<String> onDomainChanged;
+
+  final List<String> majorItems;
+  final String selectedMajor;
+  final ValueChanged<String> onMajorChanged;
+
+  final bool useMid;
+  final ValueChanged<bool> onUseMidChanged;
+
+  final List<String> midItems;
+  final String? selectedMid;
+  final ValueChanged<String?> onMidChanged;
+
+  // 必修
+  final List<String> hisshuMajorItems;
+  final String selectedHisshuMajor;
+  final ValueChanged<String> onHisshuMajorChanged;
+
+  // 状況設定
+  final Map<String, String> scenarioAspects;
+  final String? selectedScenarioAspectCode;
+  final ValueChanged<String?> onScenarioAspectChanged;
+
+  static const String modeHisshu = '必修問題';
+  static const String modeGeneral = '一般問題';
+  static const String modeSituational = '状況設定問題';
 
   @override
   Widget build(BuildContext context) {
-    final isHisshu = selectedDifficulty == '必修問題';
+    final isGeneral = mode == modeGeneral || mode == modeSituational;
+    final isSituational = mode == modeSituational;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 出題形式
-        const _Label('出題形式'),
-        _Dropdown<String>(
-          value: selectedDifficulty,
-          items: difficulties.toSet().toList(), // 念のため重複排除
-          onChanged: (v) => onDifficultyChanged(v!),
+        _LabeledBox(
+          label: '出題形式',
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: mode,
+              isExpanded: true,
+              items: const [
+                DropdownMenuItem(value: modeHisshu, child: Text(modeHisshu)),
+                DropdownMenuItem(value: modeGeneral, child: Text(modeGeneral)),
+                DropdownMenuItem(value: modeSituational, child: Text(modeSituational)),
+              ],
+              onChanged: (val) {
+                if (val == null) return;
+                onModeChanged(val);
+              },
+            ),
+          ),
         ),
+        const SizedBox(height: 12),
 
-        const SizedBox(height: 16),
+        if (isGeneral) ...[
+          // 分野
+          _LabeledBox(
+            label: '分野',
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: domainItems.contains(selectedDomain)
+                    ? selectedDomain
+                    : (domainItems.isNotEmpty ? domainItems.first : null),
+                isExpanded: true,
+                items: domainItems
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val == null) return;
+                  onDomainChanged(val);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
 
-        // 分野（必修問題のときは固定表示）
-        const _Label('分野（出題範囲）'),
-        if (isHisshu)
-          _DisabledBox(text: '対象外（必修問題）')
-        else
-          _Dropdown<String>(
-            value: selectedCategory,
-            items: categories.toSet().toList(),
-            onChanged: (v) => onCategoryChanged(v!),
+          // 大項目
+          _LabeledBox(
+            label: '大項目',
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedMajor.isNotEmpty ? selectedMajor : null,
+                isExpanded: true,
+                items: majorItems
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val == null) return;
+                  onMajorChanged(val);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 状況設定の観点（A〜E）
+          if (isSituational) ...[
+            _LabeledBox(
+              label: '状況設定の観点',
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  value: selectedScenarioAspectCode,
+                  isExpanded: true,
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('（未選択／ランダム）'),
+                    ),
+                    ...scenarioAspects.entries.map(
+                          (e) => DropdownMenuItem<String?>(
+                        value: e.key,
+                        child: Text(e.value),
+                      ),
+                    ),
+                  ],
+                  onChanged: onScenarioAspectChanged,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // 中項目スイッチ
+          Row(
+            children: [
+              Switch(
+                value: useMid,
+                onChanged: onUseMidChanged,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('中項目を指定する（オフなら裏でランダム選択）'),
+              ),
+            ],
           ),
 
-        const SizedBox(height: 24),
+          // 中項目
+          if (useMid) ...[
+            const SizedBox(height: 8),
+            _LabeledBox(
+              label: '中項目',
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: selectedMid,
+                  isExpanded: true,
+                  items: midItems
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: onMidChanged,
+                ),
+              ),
+            ),
+          ],
+        ] else ...[
+          // 必修
+          _LabeledBox(
+            label: '大項目（必修）',
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: hisshuMajorItems.contains(selectedHisshuMajor)
+                    ? selectedHisshuMajor
+                    : (hisshuMajorItems.isNotEmpty ? hisshuMajorItems.first : null),
+                isExpanded: true,
+                items: hisshuMajorItems
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (val) => onHisshuMajorChanged(val ?? ''),
+              ),
+            ),
+          ),
+        ],
 
-        // 生成ボタン（AppButtons.primary に集約）
-        AppButtons.primary(
-          label: isLoading ? '生成中…' : '問題を生成',
-          onPressed: isLoading ? null : onGeneratePressed,
-          icon: generateIcon, // ここで Icons.quiz などに差し替え可能
+        const SizedBox(height: 16),
+        isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : AppButtons.primary(
+          label: '問題を生成',
+          icon: Icons.auto_awesome,
+          onPressed: onGeneratePressed,
         ),
       ],
     );
   }
 }
 
-class _Label extends StatelessWidget {
-  const _Label(this.text);
-  final String text;
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-          color: Colors.black54,
-        ),
-      ),
-    );
-  }
-}
-
-class _Dropdown<T> extends StatelessWidget {
-  const _Dropdown({
-    required this.value,
-    required this.items,
-    required this.onChanged,
-  });
-
-  final T value;
-  final List<T> items;
-  final ValueChanged<T?> onChanged;
+/// ラベル付きの箱型コンテナ（question_screenの見た目を踏襲）
+class _LabeledBox extends StatelessWidget {
+  final String label;
+  final Widget child;
+  const _LabeledBox({required this.label, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    // items の中に value が 1つだけ存在することを保証
-    final uniqueItems = items.toSet().toList();
-    final hasExactlyOne = uniqueItems.where((e) => e == value).length == 1;
-    final safeValue = hasExactlyOne
-        ? value
-        : (uniqueItems.isNotEmpty ? uniqueItems.first : value);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: DropdownButton<T>(
-        value: safeValue,
-        isExpanded: true,
-        underline: const SizedBox.shrink(),
-        items: uniqueItems
-            .map(
-              (e) => DropdownMenuItem<T>(
-            value: e,
-            child: Text(e.toString()),
-          ),
-        )
-            .toList(),
-        onChanged: onChanged,
-      ),
-    );
-  }
-}
-
-class _DisabledBox extends StatelessWidget {
-  const _DisabledBox({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 48,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F2),
-        border: Border.all(color: Colors.black12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(color: Colors.black38),
-      ),
+    return InputDecorator(
+      decoration: const InputDecoration(
+        labelText: '',
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ).copyWith(labelText: label),
+      child: child,
     );
   }
 }

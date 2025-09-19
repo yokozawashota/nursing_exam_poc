@@ -1,4 +1,10 @@
+// lib/widgets/history_charts.dart
+import 'dart:ui' show FontFeature; // FontFeature 用
 import 'package:flutter/material.dart';
+
+// ★ 追加：型モデル＆集計ロジック（新ロジックに対応）
+import '../models/history_models.dart';
+import '../services/history_stats.dart';
 
 /// シンプルな横棒グラフ（依存0）
 /// items: [{label: '一般問題', value: 0.62}, ...] の value は 0.0〜1.0
@@ -111,19 +117,38 @@ class _BarItem {
   _BarItem(this.label, this.value);
 }
 
-/// ヘルパー: 正答率のマップ（{"一般問題": {"total":10, "correct":7}, ...}）を
+/// ========= 後方互換ヘルパー（現状の呼び出しを壊さない） =========
+/// 正答率のマップ（{"一般問題": {"total":10, "correct":7}, ...}）を
 /// MiniBarChart の items に変換
 List<_BarItem> buildBarItemsFromStatMap(Map<String, dynamic> source) {
   final List<_BarItem> out = [];
   source.forEach((k, v) {
     if (v is Map) {
-      final total = (v['total'] ?? 0) as int;
-      final correct = (v['correct'] ?? 0) as int;
+      final total = (v['total'] as num?)?.toInt() ?? 0;
+      final correct = (v['correct'] as num?)?.toInt() ?? 0;
       final rate = total == 0 ? 0.0 : (correct / total);
-      out.add(_BarItem(k, rate));
+      out.add(_BarItem(k.toString(), rate));
     }
   });
   // 正答率が高い順
   out.sort((a, b) => b.value.compareTo(a.value));
   return out;
+}
+
+/// ========= 新ロジック対応（型安全） =========
+
+/// DomainSummary（型）→ グラフ用アイテム
+List<_BarItem> buildBarItemsFromDomainSummaries(List<DomainSummary> summaries) {
+  final items = summaries
+      .map((s) => _BarItem(s.domain, s.accuracy))
+      .toList(growable: false);
+  items.sort((a, b) => b.value.compareTo(a.value)); // 高い順
+  return items;
+}
+
+/// HistoryRecord のリストから直接グラフ用アイテムを構築
+/// （内部で HistoryStats.domainSummaries を使用）
+List<_BarItem> buildBarItemsFromHistory(List<HistoryRecord> records) {
+  final summaries = HistoryStats.domainSummaries(records);
+  return buildBarItemsFromDomainSummaries(summaries);
 }

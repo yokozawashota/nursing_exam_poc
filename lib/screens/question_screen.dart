@@ -3,10 +3,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../widgets/base_scaffold.dart';
-import '../widgets/app_buttons.dart';
+import '../widgets/question_block.dart';
+import '../widgets/question_controls.dart';
 
-import '../data/categories.dart';            // domains / midsOf / topicsOf / situationalDomains
-import '../data/hisshu_categories.dart';     // kHisshuCategory, hisshuMajors()
+import '../services/category_repository.dart';   // ★ 追加：候補取得を型リポジトリ経由に
+import '../data/categories.dart';                // situationalDomains は現状ここから
 import '../services/question_service.dart';
 import 'result_screen.dart';
 
@@ -31,17 +32,29 @@ class _QuestionScreenState extends State<QuestionScreen> {
     'E': 'E. A～Dを促進するための多職種連携',
   };
 
-  String _mode = modeHisshu; // 先頭を必修に
+  String _mode = modeHisshu; // 初期は必修
 
   // 一般／状況設定 共通の選択
-  String _selectedDomain = domains.first;
+  String _selectedDomain = CategoryRepository.generalDomains().isNotEmpty
+      ? CategoryRepository.generalDomains().first
+      : '';
   String _selectedMajor =
-  majorsOf(domains.first).isNotEmpty ? majorsOf(domains.first).first : '';
+  CategoryRepository.generalMajorsOf(
+    CategoryRepository.generalDomains().isNotEmpty
+        ? CategoryRepository.generalDomains().first
+        : '',
+  ).isNotEmpty
+      ? CategoryRepository.generalMajorsOf(
+    CategoryRepository.generalDomains().isNotEmpty
+        ? CategoryRepository.generalDomains().first
+        : '',
+  ).first
+      : '';
   String? _selectedMid; // 任意指定（nullなら裏でランダム）
 
   // 必修
   String _selectedHisshuMajor = '';
-  List<String> get hisshuMajorItems => hisshuMajors();
+  List<String> get hisshuMajorItems => CategoryRepository.hisshuMajorItems();
 
   // 状況設定：観点コード（'A'〜'E'）。nullならランダム
   String? _selectedScenarioAspectCode;
@@ -74,9 +87,11 @@ class _QuestionScreenState extends State<QuestionScreen> {
   }
 
   void _resetGeneralMajorAndMid(String domain) {
-    final ms = majorsOf(domain);
+    final ms = CategoryRepository.generalMajorsOf(domain);
     final newMajor = ms.isNotEmpty ? ms.first : '';
-    final mids = (newMajor.isEmpty) ? const <String>[] : midsOf(domain, newMajor);
+    final mids = (newMajor.isEmpty)
+        ? const <String>[]
+        : CategoryRepository.generalMidsOf(domain, newMajor);
     setState(() {
       _selectedDomain = domain;
       _selectedMajor = newMajor;
@@ -110,7 +125,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
       String? scenarioAspectCode;
 
       if (_mode == modeHisshu) {
-        domainArg = kHisshuCategory;
+        domainArg = '必修'; // kHisshuCategory はサービス側で扱うため、ここは表示目的での値でOK
         majorArg = _selectedHisshuMajor;
         midArg = null; // 裏でランダム
       } else {
@@ -133,34 +148,17 @@ class _QuestionScreenState extends State<QuestionScreen> {
         scenarioAspect: scenarioAspectCode, // 任意受け取り
       );
 
+      // QuestionService は choices(Map<String,String>) と correct(ラベル) を返す想定
       setState(() {
-        _questionText = (data['question'] ?? '') as String;
+        _questionText = (data['question'] as String?)?.trim();
+        final rawChoices = data['choices'] as Map?;
+        _choices =
+            rawChoices?.map((k, v) => MapEntry(k.toString(), v.toString()));
 
-        // choices：Map でも List でも受け付け → Map<String,String> に正規化
-        final dynamic rawChoices = data['choices'];
-        Map<String, String>? toMap;
-        if (rawChoices is Map) {
-          toMap =
-              rawChoices.map((k, v) => MapEntry(k.toString(), v.toString()));
-        } else if (rawChoices is List) {
-          final labels = ['A', 'B', 'C', 'D'];
-          final n = rawChoices.length < 4 ? rawChoices.length : 4;
-          toMap = {
-            for (var i = 0; i < n; i++) labels[i]: rawChoices[i].toString(),
-          };
-        }
-        _choices = toMap;
+        _correct = (data['correct'] ?? data['correctAnswer'] ?? data['answer'])
+            ?.toString();
 
-        String? correctLetter;
-        final idx = data['correctIndex'];
-        if (idx is int && idx >= 0 && idx < 4) {
-          correctLetter = ['A', 'B', 'C', 'D'][idx];
-        } else {
-          correctLetter = (data['correct'] ?? data['correctAnswer'] ?? data['answer'])?.toString();
-        }
-        _correct = correctLetter ?? '';
-
-        _explanation = (data['explanation'] ?? '') as String;
+        _explanation = (data['explanation'] as String?) ?? '';
 
         final rawRat = data['rationales'] as Map?;
         _rationales =
@@ -222,8 +220,8 @@ class _QuestionScreenState extends State<QuestionScreen> {
   @override
   Widget build(BuildContext context) {
     // 状況設定モードのときだけ、領域候補を限定
-    final domainItems =
-    _mode == modeSituational ? situationalDomains : domains;
+    final domainList =
+    _mode == modeSituational ? situationalDomains : CategoryRepository.generalDomains();
 
     return BaseScaffold(
       title: '出題',
@@ -233,276 +231,78 @@ class _QuestionScreenState extends State<QuestionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 出題形式（順番：必修問題／一般問題／状況設定問題）
-              _LabeledBox(
-                label: '出題形式',
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _mode,
-                    isExpanded: true,
-                    items: const [
-                      DropdownMenuItem(
-                          value: modeHisshu, child: Text(modeHisshu)),
-                      DropdownMenuItem(
-                          value: modeGeneral, child: Text(modeGeneral)),
-                      DropdownMenuItem(
-                          value: modeSituational, child: Text(modeSituational)),
-                    ],
-                    onChanged: (val) {
-                      if (val == null) return;
-                      setState(() {
-                        _mode = val;
-                        // 領域候補が変わる可能性があるので、状況設定→一般／必修に戻ったら念のため再初期化
-                        if (_mode != modeHisshu) {
-                          final useList =
-                          _mode == modeSituational ? situationalDomains : domains;
-                          final dom = useList.contains(_selectedDomain)
-                              ? _selectedDomain
-                              : useList.first;
-                          _resetGeneralMajorAndMid(dom);
-                        }
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              if (_mode == modeGeneral || _mode == modeSituational) ...[
-                _LabeledBox(
-                  label: '分野',
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: domainItems.contains(_selectedDomain)
+              // ====== コントロール部（表示専用） ======
+              QuestionControls(
+                mode: _mode,
+                onModeChanged: (val) {
+                  setState(() {
+                    _mode = val;
+                    // 領域候補が変わる可能性があるので、状況設定→一般／必修に戻ったら念のため再初期化
+                    if (_mode != modeHisshu) {
+                      final useList =
+                      _mode == modeSituational ? situationalDomains : CategoryRepository.generalDomains();
+                      final dom = useList.contains(_selectedDomain)
                           ? _selectedDomain
-                          : domainItems.first,
-                      isExpanded: true,
-                      items: domainItems
-                          .map((e) =>
-                          DropdownMenuItem(value: e, child: Text(e)))
-                          .toList(),
-                      onChanged: (val) {
-                        if (val == null) return;
-                        _resetGeneralMajorAndMid(val);
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
+                          : (useList.isNotEmpty ? useList.first : _selectedDomain);
+                      _resetGeneralMajorAndMid(dom);
+                    }
+                  });
+                },
+                isLoading: _isLoading,
+                onGeneratePressed: _generateQuestion,
 
-                _LabeledBox(
-                  label: '大項目',
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedMajor.isNotEmpty ? _selectedMajor : null,
-                      isExpanded: true,
-                      items: majorsOf(_selectedDomain)
-                          .map((e) =>
-                          DropdownMenuItem(value: e, child: Text(e)))
-                          .toList(),
-                      onChanged: (val) {
-                        if (val == null) return;
-                        final mids = midsOf(_selectedDomain, val);
-                        setState(() {
-                          _selectedMajor = val;
-                          _selectedMid = mids.isNotEmpty ? mids.first : null;
-                        });
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
+                // 一般/状況設定
+                domainItems: domainList,
+                selectedDomain: domainList.contains(_selectedDomain)
+                    ? _selectedDomain
+                    : (domainList.isNotEmpty ? domainList.first : _selectedDomain),
+                onDomainChanged: (val) => _resetGeneralMajorAndMid(val),
 
-                // 状況設定の観点（A〜E）
-                if (_mode == modeSituational) ...[
-                  _LabeledBox(
-                    label: '状況設定の観点',
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String?>(
-                        value: _selectedScenarioAspectCode,
-                        isExpanded: true,
-                        items: [
-                          const DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('（未選択／ランダム）'),
-                          ),
-                          ..._scenarioAspects.entries.map(
-                                (e) => DropdownMenuItem<String?>(
-                              value: e.key,
-                              child: Text(e.value),
-                            ),
-                          ),
-                        ],
-                        onChanged: (val) =>
-                            setState(() => _selectedScenarioAspectCode = val),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
+                majorItems: CategoryRepository.generalMajorsOf(_selectedDomain),
+                selectedMajor: _selectedMajor,
+                onMajorChanged: (val) {
+                  final mids = CategoryRepository.generalMidsOf(_selectedDomain, val);
+                  setState(() {
+                    _selectedMajor = val;
+                    _selectedMid = mids.isNotEmpty ? mids.first : null;
+                  });
+                },
 
-                Row(
-                  children: [
-                    Switch(
-                      value: _useMid,
-                      onChanged: (v) => setState(() => _useMid = v),
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text('中項目を指定する（オフなら裏でランダム選択）'),
-                    ),
-                  ],
-                ),
-                if (_useMid) ...[
-                  const SizedBox(height: 8),
-                  _LabeledBox(
-                    label: '中項目',
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedMid,
-                        isExpanded: true,
-                        items: midsOf(_selectedDomain, _selectedMajor)
-                            .map((e) =>
-                            DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (val) => setState(() => _selectedMid = val),
-                      ),
-                    ),
-                  ),
-                ],
-              ] else ...[
+                useMid: _useMid,
+                onUseMidChanged: (v) => setState(() => _useMid = v),
+
+                midItems: CategoryRepository.generalMidsOf(_selectedDomain, _selectedMajor),
+                selectedMid: _selectedMid,
+                onMidChanged: (val) => setState(() => _selectedMid = val),
+
                 // 必修
-                _LabeledBox(
-                  label: '大項目（必修）',
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: hisshuMajorItems.contains(_selectedHisshuMajor)
-                          ? _selectedHisshuMajor
-                          : (hisshuMajorItems.isNotEmpty
-                          ? hisshuMajorItems.first
-                          : null),
-                      isExpanded: true,
-                      items: hisshuMajorItems
-                          .map((e) =>
-                          DropdownMenuItem(value: e, child: Text(e)))
-                          .toList(),
-                      onChanged: (val) =>
-                          setState(() => _selectedHisshuMajor = val ?? ''),
-                    ),
-                  ),
-                ),
-              ],
+                hisshuMajorItems: hisshuMajorItems,
+                selectedHisshuMajor: hisshuMajorItems.contains(_selectedHisshuMajor)
+                    ? _selectedHisshuMajor
+                    : (hisshuMajorItems.isNotEmpty ? hisshuMajorItems.first : ''),
+                onHisshuMajorChanged: (val) =>
+                    setState(() => _selectedHisshuMajor = val),
 
-              const SizedBox(height: 16),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : AppButtons.primary(
-                label: '問題を生成',
-                icon: Icons.auto_awesome,
-                onPressed: _generateQuestion,
+                // 状況設定
+                scenarioAspects: _scenarioAspects,
+                selectedScenarioAspectCode: _selectedScenarioAspectCode,
+                onScenarioAspectChanged: (val) =>
+                    setState(() => _selectedScenarioAspectCode = val),
               ),
 
               const SizedBox(height: 24),
-              if (_questionText != null && _choices != null) ...[
-                const Divider(height: 32),
-                const Text(
-                  '問題',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _questionText!,
-                  style: const TextStyle(
-                      fontSize: 16, fontFamily: 'NotoSansJP'),
-                ),
-                const SizedBox(height: 16),
 
-                // 選択肢（結果画面風カードUI：先頭の丸囲み・右端の小さい丸は排除）
-                ...['A', 'B', 'C', 'D']
-                    .where((k) => _choices!.containsKey(k))
-                    .map((k) {
-                  final text = _choices![k]!;
-                  final selected = _userAnswer == k;
-                  return _OptionTile(
-                    label: k,
-                    text: text,
-                    selected: selected,
-                    onTap: () => setState(() => _userAnswer = k),
-                  );
-                }),
-
-                const SizedBox(height: 8),
-                AppButtons.success(
-                  label: '解答する',
-                  icon: Icons.check_circle,
-                  onPressed: _submitAnswer,
+              // ====== 出題ブロック（表示専用） ======
+              if (_questionText != null && _choices != null)
+                QuestionBlock(
+                  questionText: _questionText!,
+                  choices: _choices!,
+                  selectedLabel: _userAnswer,
+                  onSelect: (label) => setState(() => _userAnswer = label),
+                  onSubmit: _submitAnswer,
                 ),
-              ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 共通：ラベル付きの箱型コンテナ（UIを崩さないため最低限の装飾に留める）
-class _LabeledBox extends StatelessWidget {
-  final String label;
-  final Widget child;
-  const _LabeledBox({required this.label, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return InputDecorator(
-      decoration: const InputDecoration(
-        labelText: '',
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ).copyWith(labelText: label),
-      child: child,
-    );
-  }
-}
-
-// 出題ページの選択肢を結果画面風カードで表示（先頭の丸囲み/右端の丸は無し）
-class _OptionTile extends StatelessWidget {
-  final String label;     // 'A'..'D'
-  final String text;      // 選択肢本文
-  final bool selected;    // 選択中かどうか
-  final VoidCallback onTap;
-
-  const _OptionTile({
-    required this.label,
-    required this.text,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = selected ? Colors.teal.withOpacity(0.12) : null;
-    final borderColor = selected ? Colors.teal : Colors.black12;
-
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: bg,
-          border: Border.all(color: borderColor),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: ListTile(
-          // 文字のまま（丸囲み無し）
-          leading: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          title: Text(text),
-          // 右端の小さい丸は表示しない
-          trailing: null,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         ),
       ),
     );
