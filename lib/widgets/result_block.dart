@@ -1,162 +1,124 @@
+// lib/widgets/result_block.dart
 import 'package:flutter/material.dart';
 
-/// 解答結果の表示ブロック（表示専用）
-/// - 正誤判定や次問生成などのロジックは保持しない
-/// - 見た目は現行の結果表示を踏襲（丸囲みや右端丸は使わないカード風）
+/// 結果表示（単一/複数正答の両対応）
 class ResultBlock extends StatelessWidget {
   final String question;
-  final Map<String, String> choices;       // {'A':'...', 'B':'...'}
-  final String selectedAnswer;             // 'A'..'D'
-  final String correctAnswer;              // 'A'..'D'
-  final String explanation;                // 解説
-  final Map<String, String>? rationales;   // 任意: {'A':'...', ...}
+  final Map<String, String> choices;
+
+  // 新API
+  final List<String>? selectedAnswers; // 複数対応
+  final List<String>? correctAnswers;  // 複数対応
+
+  // 旧API（互換）
+  final String? selectedAnswer;
+  final String? correctAnswer;
+
+  final String explanation;
+  final Map<String, String>? rationales;
 
   const ResultBlock({
     super.key,
     required this.question,
     required this.choices,
-    required this.selectedAnswer,
-    required this.correctAnswer,
+    this.selectedAnswers,
+    this.correctAnswers,
+    this.selectedAnswer,
+    this.correctAnswer,
     required this.explanation,
-    this.rationales,
+    required this.rationales,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isCorrect = selectedAnswer.toUpperCase().trim() ==
-        correctAnswer.toUpperCase().trim();
+    final labels = choices.keys.toList()..sort();
+
+    // 実際に使う集合（旧/新を吸収）
+    final sel = (selectedAnswers ??
+        (selectedAnswer != null ? <String>[selectedAnswer!] : const <String>[]))
+        .toSet();
+    final cor = (correctAnswers ??
+        (correctAnswer != null ? <String>[correctAnswer!] : const <String>[]))
+        .toSet();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 見出し
-        const Text(
-          '解答結果',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-
-        // 正誤バッジ
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: isCorrect ? Colors.teal.withOpacity(0.12) : Colors.red.withOpacity(0.10),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: isCorrect ? Colors.teal : Colors.redAccent),
-          ),
-          child: Row(
-            children: [
-              Icon(isCorrect ? Icons.check_circle : Icons.cancel,
-                  color: isCorrect ? Colors.teal : Colors.redAccent),
-              const SizedBox(width: 8),
-              Text(
-                isCorrect ? '正解です！' : '不正解です',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: isCorrect ? Colors.teal.shade800 : Colors.red.shade800,
-                ),
-              ),
-              const Spacer(),
-              Text('正答: $correctAnswer'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // 問題文
         const Text('問題', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           question,
-          style: const TextStyle(fontSize: 16, fontFamily: 'NotoSansJP', height: 1.45),
+          style: const TextStyle(fontSize: 16, fontFamily: 'NotoSansJP'),
         ),
-
         const SizedBox(height: 16),
 
-        // 選択肢: A〜Dのみ表示、空文字は非表示
-        ...['A', 'B', 'C', 'D'].where((k) => choices.containsKey(k)).map((k) {
-          final t = (choices[k] ?? '').trim();
-          if (t.isEmpty) return const SizedBox.shrink();
+        const Text('選択肢', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
 
-          final bool isCorrectChoice = k == correctAnswer;
-          final bool isSelectedWrong = (k == selectedAnswer) && !isCorrectChoice;
+        ...labels.map((k) {
+          final text = choices[k]!;
+          final isCorrect = cor.contains(k);
+          final isSelected = sel.contains(k);
 
-          Color border = Colors.black12;
-          Color? bg;
-          if (isCorrectChoice) {
+          final Color border;
+          final Color? fill;
+          IconData? leadingIcon;
+
+          if (isCorrect && isSelected) {
             border = Colors.teal;
-            bg = Colors.teal.withOpacity(0.08);
-          } else if (isSelectedWrong) {
-            border = Colors.redAccent;
-            bg = Colors.red.withOpacity(0.06);
+            fill = Colors.teal.withOpacity(0.10);
+            leadingIcon = Icons.check_circle;
+          } else if (isCorrect && !isSelected) {
+            border = Colors.orange;
+            fill = Colors.orange.withOpacity(0.10);
+            leadingIcon = Icons.info;
+          } else if (isSelected && !isCorrect) {
+            border = Colors.red;
+            fill = Colors.red.withOpacity(0.08);
+            leadingIcon = Icons.cancel;
+          } else {
+            border = Colors.black12;
+            fill = null;
+            leadingIcon = null;
           }
 
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
-              color: bg,
+              color: fill,
               border: Border.all(color: border),
               borderRadius: BorderRadius.circular(8),
             ),
             child: ListTile(
-              leading: Text(
-                k,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              leading: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (leadingIcon != null)
+                    Icon(leadingIcon, size: 20, color: border),
+                  if (leadingIcon != null) const SizedBox(width: 6),
+                  Text(k, style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
               ),
-              title: Text(t),
-              trailing: isCorrectChoice
-                  ? const Icon(Icons.check, color: Colors.teal)
-                  : (isSelectedWrong ? const Icon(Icons.close, color: Colors.redAccent) : null),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              title: Text(text),
+              contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             ),
           );
         }),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        const Text('解説', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(explanation.isEmpty ? '—' : explanation),
 
-        // 解説
-        if (explanation.trim().isNotEmpty) ...[
-          const Text('解説', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.035),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.black12),
-            ),
-            child: Text(
-              explanation,
-              style: const TextStyle(height: 1.5),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        // 各選択肢の理由（ある場合のみ）
         if (rationales != null && rationales!.isNotEmpty) ...[
+          const SizedBox(height: 12),
           const Text('各選択肢の理由', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          ...['A', 'B', 'C', 'D'].where((k) => rationales!.containsKey(k)).map((k) {
-            final r = (rationales![k] ?? '').trim();
-            if (r.isEmpty) return const SizedBox.shrink();
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.black12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(k, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(r)),
-                ],
-              ),
+          const SizedBox(height: 4),
+          ...rationales!.entries.map((e) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text('【${e.key}】 ${e.value}'),
             );
           }),
         ],

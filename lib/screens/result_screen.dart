@@ -7,10 +7,17 @@ import '../widgets/result_block.dart';
 
 class ResultScreen extends StatelessWidget {
   final String question;
-  final Map<String, String> choices;     // {'A':'...', 'B':'...'}
-  final String selectedAnswer;           // 'A'..'D'
-  final String correctAnswer;            // 'A'..'D'
-  final String explanation;              // 解説
+  final Map<String, String> choices;
+
+  // —— 新API（複数対応）
+  final List<String>? selectedAnswers; // 例: ['A','C']
+  final List<String>? correctAnswers;  // 例: ['A','C']
+
+  // —— 旧API（単一対応・後方互換）
+  final String? selectedAnswer;        // 例: 'B'
+  final String? correctAnswer;         // 例: 'A'
+
+  final String explanation;            // 解説
   final Map<String, String>? rationales; // 任意: {'A':'...', ...}
 
   // 次の問題を生成（QuestionScreen 側から渡される）
@@ -27,8 +34,12 @@ class ResultScreen extends StatelessWidget {
     super.key,
     required this.question,
     required this.choices,
-    required this.selectedAnswer,
-    required this.correctAnswer,
+    // 新API（複数）
+    this.selectedAnswers,
+    this.correctAnswers,
+    // 旧API（単一）
+    this.selectedAnswer,
+    this.correctAnswer,
     required this.explanation,
     this.rationales,
     required this.onGenerateNext,
@@ -41,6 +52,12 @@ class ResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 実際にResultBlockへ渡す集合（旧/新どちらでもOK）
+    final List<String>? selectedList =
+        selectedAnswers ?? (selectedAnswer != null ? [selectedAnswer!] : null);
+    final List<String>? correctList =
+        correctAnswers ?? (correctAnswer != null ? [correctAnswer!] : null);
+
     return BaseScaffold(
       title: '解答結果',
       body: SafeArea(
@@ -53,6 +70,10 @@ class ResultScreen extends StatelessWidget {
               ResultBlock(
                 question: question,
                 choices: choices,
+                // 複数対応で渡す（内部で旧APIにも互換あり）
+                selectedAnswers: selectedList,
+                correctAnswers: correctList,
+                // 念のため旧APIも併せて渡しておく（互換継続）
                 selectedAnswer: selectedAnswer,
                 correctAnswer: correctAnswer,
                 explanation: explanation,
@@ -60,7 +81,7 @@ class ResultScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // ボタン群（導線はご要望に合わせて調整）
+              // 遷移する「次の問題を生成」ボタン（これを残す）
               Row(
                 children: [
                   Expanded(
@@ -77,14 +98,15 @@ class ResultScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
+
+              // 出題に戻る
               Row(
                 children: [
                   Expanded(
                     child: AppButtons.primary(
-                      label: '出題に戻る',          // ← ラベル変更
-                      icon: Icons.arrow_back,     // ← 戻るアイコンに変更（任意）
+                      label: '出題に戻る',
+                      icon: Icons.arrow_back,
                       onPressed: () {
-                        // 1画面だけ戻る → QuestionScreenへ
                         Navigator.of(context).pop();
                       },
                     ),

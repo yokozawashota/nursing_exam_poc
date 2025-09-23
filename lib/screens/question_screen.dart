@@ -6,9 +6,10 @@ import '../widgets/base_scaffold.dart';
 import '../widgets/question_block.dart';
 import '../widgets/question_controls.dart';
 
-import '../services/category_repository.dart';   // ★ 追加：候補取得を型リポジトリ経由に
-import '../data/categories.dart';                // situationalDomains は現状ここから
+import '../services/category_repository.dart';   // 候補取得
+import '../data/categories.dart';                // situationalDomains
 import '../services/question_service.dart';
+import '../models/answer_history.dart';          // ★ 追加：履歴保存
 import 'result_screen.dart';
 
 class QuestionScreen extends StatefulWidget {
@@ -64,11 +65,12 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
   // 出題中の問題
   String? _questionText;
-  Map<String, String>? _choices; // {'A':'...', 'B':'...'}
-  String? _correct; // 'A'|'B'|'C'|'D'
+  Map<String, String>? _choices;
+  List<String>? _correctAnswers; // 複数対応
   String? _explanation;
   Map<String, String>? _rationales;
-  String? _userAnswer; // ユーザー選択
+  Set<String> _userAnswers = {}; // 複数対応
+  String _questionKind = 'single'; // 'single' | 'multiple' | 'select_incorrect'
 
   // 中項目を明示指定するか
   bool _useMid = false;
@@ -109,10 +111,11 @@ class _QuestionScreenState extends State<QuestionScreen> {
       _isLoading = true;
       _questionText = null;
       _choices = null;
-      _correct = null;
+      _correctAnswers = null;
       _explanation = null;
       _rationales = null;
-      _userAnswer = null;
+      _userAnswers = {};
+      _questionKind = 'single';
       _meta = null;
     });
 
@@ -125,11 +128,10 @@ class _QuestionScreenState extends State<QuestionScreen> {
       String? scenarioAspectCode;
 
       if (_mode == modeHisshu) {
-        domainArg = '必修'; // kHisshuCategory はサービス側で扱うため、ここは表示目的での値でOK
+        domainArg = '必修';
         majorArg = _selectedHisshuMajor;
-        midArg = null; // 裏でランダム
+        midArg = null;
       } else {
-        // 一般 or 状況設定
         domainArg = _selectedDomain;
         majorArg = _selectedMajor;
         midArg = _useMid ? _selectedMid : null;
@@ -145,18 +147,18 @@ class _QuestionScreenState extends State<QuestionScreen> {
         domain: domainArg,
         major: majorArg,
         mid: midArg,
-        scenarioAspect: scenarioAspectCode, // 任意受け取り
+        scenarioAspect: scenarioAspectCode,
       );
 
-      // QuestionService は choices(Map<String,String>) と correct(ラベル) を返す想定
       setState(() {
         _questionText = (data['question'] as String?)?.trim();
         final rawChoices = data['choices'] as Map?;
         _choices =
             rawChoices?.map((k, v) => MapEntry(k.toString(), v.toString()));
 
-        _correct = (data['correct'] ?? data['correctAnswer'] ?? data['answer'])
-            ?.toString();
+        _correctAnswers =
+            (data['correctAnswers'] as List?)?.map((e) => e.toString()).toList() ??
+                [(data['correct'] ?? '').toString()];
 
         _explanation = (data['explanation'] as String?) ?? '';
 
@@ -164,7 +166,9 @@ class _QuestionScreenState extends State<QuestionScreen> {
         _rationales =
             rawRat?.map((k, v) => MapEntry(k.toString(), v.toString()));
 
-        // 履歴保存用メタ
+        _questionKind = (data['questionKind'] ?? 'single') as String;
+        _userAnswers = {};
+
         final rawMeta = data['meta'] as Map?;
         _meta = rawMeta?.map((k, v) => MapEntry(k.toString(), v));
       });
@@ -182,31 +186,62 @@ class _QuestionScreenState extends State<QuestionScreen> {
     }
   }
 
-  void _submitAnswer() {
-    if (_questionText == null || _choices == null || _correct == null) {
+  Future<void> _submitAnswer() async {
+    if (_questionText == null || _choices == null || _correctAnswers == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('問題を生成してから解答してください。')),
       );
       return;
     }
-    if (_userAnswer == null) {
+    if (_userAnswers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('選択肢を選んでください。')),
       );
       return;
     }
 
+    // ★ 履歴保存（複数解答対応）
+    try {
+      final rec = AnswerRecord(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        ts: DateTime.now(),
+        difficulty: _mode,
+        domain: (_meta?['domain'] as String?) ?? _selectedDomain,
+        major: (_meta?['major'] as String?) ?? _selectedMajor,
+        mid: (_meta?['mid'] as String?) ?? (_useMid ? _selectedMid : null),
+        topic: _meta?['topic'] as String?,
+        question: _questionText!,
+        choices: _choices!,
+        explanation: _explanation,
+        rationales: _rationales,
+        choiceCount: _choices!.length,
+        questionKind: _questionKind,
+        userAnswers: _userAnswers.toList()..sort(),
+        correctAnswers: _correctAnswers!..sort(),
+      );
+      await AnswerHistory.instance.add(rec);
+    } catch (e) {
+      // 保存失敗は致命ではないためトーストのみ
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('履歴の保存に失敗しました：$e')),
+        );
+      }
+    }
+
+    if (!mounted) return;
+
+    // 結果画面へ
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ResultScreen(
           question: _questionText!,
           choices: _choices!,
-          selectedAnswer: _userAnswer!,
-          correctAnswer: _correct!,
+          selectedAnswers: _userAnswers.toList(),
+          correctAnswers: _correctAnswers!,
           explanation: _explanation ?? '',
           rationales: _rationales,
           onGenerateNext: _generateQuestion,
-          // 履歴保存メタ（個別渡し）
           difficulty: _mode,
           domain: _meta?['domain'] as String?,
           major: _meta?['major'] as String?,
@@ -219,9 +254,9 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 状況設定モードのときだけ、領域候補を限定
-    final domainList =
-    _mode == modeSituational ? situationalDomains : CategoryRepository.generalDomains();
+    final domainList = _mode == modeSituational
+        ? situationalDomains
+        : CategoryRepository.generalDomains();
 
     return BaseScaffold(
       title: '出題',
@@ -231,16 +266,16 @@ class _QuestionScreenState extends State<QuestionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ====== コントロール部（表示専用） ======
+              // ====== コントロール部 ======
               QuestionControls(
                 mode: _mode,
                 onModeChanged: (val) {
                   setState(() {
                     _mode = val;
-                    // 領域候補が変わる可能性があるので、状況設定→一般／必修に戻ったら念のため再初期化
                     if (_mode != modeHisshu) {
-                      final useList =
-                      _mode == modeSituational ? situationalDomains : CategoryRepository.generalDomains();
+                      final useList = _mode == modeSituational
+                          ? situationalDomains
+                          : CategoryRepository.generalDomains();
                       final dom = useList.contains(_selectedDomain)
                           ? _selectedDomain
                           : (useList.isNotEmpty ? useList.first : _selectedDomain);
@@ -250,40 +285,33 @@ class _QuestionScreenState extends State<QuestionScreen> {
                 },
                 isLoading: _isLoading,
                 onGeneratePressed: _generateQuestion,
-
-                // 一般/状況設定
                 domainItems: domainList,
                 selectedDomain: domainList.contains(_selectedDomain)
                     ? _selectedDomain
                     : (domainList.isNotEmpty ? domainList.first : _selectedDomain),
                 onDomainChanged: (val) => _resetGeneralMajorAndMid(val),
-
                 majorItems: CategoryRepository.generalMajorsOf(_selectedDomain),
                 selectedMajor: _selectedMajor,
                 onMajorChanged: (val) {
-                  final mids = CategoryRepository.generalMidsOf(_selectedDomain, val);
+                  final mids =
+                  CategoryRepository.generalMidsOf(_selectedDomain, val);
                   setState(() {
                     _selectedMajor = val;
                     _selectedMid = mids.isNotEmpty ? mids.first : null;
                   });
                 },
-
                 useMid: _useMid,
                 onUseMidChanged: (v) => setState(() => _useMid = v),
-
-                midItems: CategoryRepository.generalMidsOf(_selectedDomain, _selectedMajor),
+                midItems:
+                CategoryRepository.generalMidsOf(_selectedDomain, _selectedMajor),
                 selectedMid: _selectedMid,
                 onMidChanged: (val) => setState(() => _selectedMid = val),
-
-                // 必修
                 hisshuMajorItems: hisshuMajorItems,
                 selectedHisshuMajor: hisshuMajorItems.contains(_selectedHisshuMajor)
                     ? _selectedHisshuMajor
                     : (hisshuMajorItems.isNotEmpty ? hisshuMajorItems.first : ''),
                 onHisshuMajorChanged: (val) =>
                     setState(() => _selectedHisshuMajor = val),
-
-                // 状況設定
                 scenarioAspects: _scenarioAspects,
                 selectedScenarioAspectCode: _selectedScenarioAspectCode,
                 onScenarioAspectChanged: (val) =>
@@ -292,13 +320,33 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
               const SizedBox(height: 24),
 
-              // ====== 出題ブロック（表示専用） ======
+              // ====== 出題ブロック ======
               if (_questionText != null && _choices != null)
                 QuestionBlock(
                   questionText: _questionText!,
                   choices: _choices!,
-                  selectedLabel: _userAnswer,
-                  onSelect: (label) => setState(() => _userAnswer = label),
+                  questionKind: _questionKind,
+                  // 単一
+                  selectedLabel: _questionKind != 'multiple'
+                      ? (_userAnswers.isNotEmpty ? _userAnswers.first : null)
+                      : null,
+                  onSelect: _questionKind != 'multiple'
+                      ? (val) => setState(() => _userAnswers = {val})
+                      : null,
+                  // 複数
+                  selectedLabels:
+                  _questionKind == 'multiple' ? _userAnswers.toList() : null,
+                  onToggle: _questionKind == 'multiple'
+                      ? (val) {
+                    setState(() {
+                      if (_userAnswers.contains(val)) {
+                        _userAnswers.remove(val);
+                      } else {
+                        _userAnswers.add(val);
+                      }
+                    });
+                  }
+                      : null,
                   onSubmit: _submitAnswer,
                 ),
             ],
