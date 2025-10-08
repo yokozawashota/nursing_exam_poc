@@ -83,6 +83,10 @@ class QuestionControls extends StatelessWidget {
     final isGeneral = mode == modeGeneral || mode == modeSituational;
     final isSituational = mode == modeSituational;
 
+    // ▼ ドロップダウン表示を「太字ではなく通常」に統一
+    final TextStyle? ddStyle =
+    Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w400);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -93,6 +97,7 @@ class QuestionControls extends StatelessWidget {
             child: DropdownButton<String>(
               value: mode,
               isExpanded: true,
+              style: ddStyle,
               items: const [
                 DropdownMenuItem(value: modeHisshu, child: Text(modeHisshu)),
                 DropdownMenuItem(value: modeGeneral, child: Text(modeGeneral)),
@@ -117,8 +122,9 @@ class QuestionControls extends StatelessWidget {
                     ? selectedDomain
                     : (domainItems.isNotEmpty ? domainItems.first : null),
                 isExpanded: true,
+                style: ddStyle,
                 items: domainItems
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e, style: ddStyle)))
                     .toList(),
                 onChanged: (val) {
                   if (val == null) return;
@@ -136,8 +142,9 @@ class QuestionControls extends StatelessWidget {
               child: DropdownButton<String>(
                 value: selectedMajor.isNotEmpty ? selectedMajor : null,
                 isExpanded: true,
+                style: ddStyle,
                 items: majorItems
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e, style: ddStyle)))
                     .toList(),
                 onChanged: (val) {
                   if (val == null) return;
@@ -156,15 +163,16 @@ class QuestionControls extends StatelessWidget {
                 child: DropdownButton<String?>(
                   value: selectedScenarioAspectCode,
                   isExpanded: true,
+                  style: ddStyle,
                   items: [
-                    const DropdownMenuItem<String?>(
+                    DropdownMenuItem<String?>(
                       value: null,
-                      child: Text('（未選択／ランダム）'),
+                      child: Text('（未選択／ランダム）', style: ddStyle),
                     ),
                     ...scenarioAspects.entries.map(
                           (e) => DropdownMenuItem<String?>(
                         value: e.key,
-                        child: Text(e.value),
+                        child: Text(e.value, style: ddStyle),
                       ),
                     ),
                   ],
@@ -198,8 +206,9 @@ class QuestionControls extends StatelessWidget {
                 child: DropdownButton<String>(
                   value: selectedMid,
                   isExpanded: true,
+                  style: ddStyle,
                   items: midItems
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e, style: ddStyle)))
                       .toList(),
                   onChanged: onMidChanged,
                 ),
@@ -216,8 +225,9 @@ class QuestionControls extends StatelessWidget {
                     ? selectedHisshuMajor
                     : (hisshuMajorItems.isNotEmpty ? hisshuMajorItems.first : null),
                 isExpanded: true,
+                style: ddStyle,
                 items: hisshuMajorItems
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e, style: ddStyle)))
                     .toList(),
                 onChanged: (val) => onHisshuMajorChanged(val ?? ''),
               ),
@@ -246,12 +256,17 @@ class _LabeledBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return InputDecorator(
       decoration: const InputDecoration(
         labelText: '',
         border: OutlineInputBorder(),
         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ).copyWith(labelText: label),
+      ).copyWith(
+        labelText: label,
+        // ラベル側も通常ウェイトに
+        labelStyle: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+      ),
       child: child,
     );
   }

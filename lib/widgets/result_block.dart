@@ -1,126 +1,117 @@
 // lib/widgets/result_block.dart
 import 'package:flutter/material.dart';
+import 'choice_tile.dart';
 
-/// 結果表示（単一/複数正答の両対応）
+/// 解答結果の表示用ブロック。
+/// - 選択肢の配色ルールは ChoiceTile に統一（正答=薄緑／誤答で選択=薄赤／その他=通常）
+/// - 「解説」「根拠」は枠/背景なしのプレーンテキストで表示
 class ResultBlock extends StatelessWidget {
-  final String question;
-  final Map<String, String> choices;
-
-  // 新API
-  final List<String>? selectedAnswers; // 複数対応
-  final List<String>? correctAnswers;  // 複数対応
-
-  // 旧API（互換）
-  final String? selectedAnswer;
-  final String? correctAnswer;
-
-  final String explanation;
-  final Map<String, String>? rationales;
-
   const ResultBlock({
     super.key,
     required this.question,
-    required this.choices,
-    this.selectedAnswers,
-    this.correctAnswers,
-    this.selectedAnswer,
-    this.correctAnswer,
+    required this.choices,           // { 'A': '...', ... }
+    required this.selectedAnswers,   // 例 ['B','D']
+    required this.correctAnswers,    // 例 ['C','E']
     required this.explanation,
-    required this.rationales,
+    this.rationales,                 // 例 { 'A': '...', 'B': '...' }
+    this.questionKind,               // 'single' | 'multiple' | 'select_incorrect'（任意）
   });
+
+  final String question;
+  final Map<String, String> choices;
+  final List<String> selectedAnswers;
+  final List<String> correctAnswers;
+  final String explanation;
+  final Map<String, String>? rationales;
+
+  /// 画面上の表示には必須ではないが、将来の注記や整合チェックに使えるよう受け取る
+  final String? questionKind;
 
   @override
   Widget build(BuildContext context) {
-    final labels = choices.keys.toList()..sort();
+    final theme = Theme.of(context);
 
-    // 実際に使う集合（旧/新を吸収）
-    final sel = (selectedAnswers ??
-        (selectedAnswer != null ? <String>[selectedAnswer!] : const <String>[]))
-        .toSet();
-    final cor = (correctAnswers ??
-        (correctAnswer != null ? <String>[correctAnswer!] : const <String>[]))
-        .toSet();
+    final orderedKeys =
+    ['A', 'B', 'C', 'D', 'E'].where((k) => choices.containsKey(k)).toList();
+    final selected = selectedAnswers.toSet();
+    final correct  = correctAnswers.toSet();
+
+    ChoiceTileState stateOf(String label) {
+      if (correct.contains(label)) return ChoiceTileState.correct;
+      if (selected.contains(label)) return ChoiceTileState.incorrect;
+      return ChoiceTileState.normal;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('問題', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Text(
-          question,
-          style: const TextStyle(fontSize: 16, fontFamily: 'NotoSansJP'),
-        ),
+        // 問題文（枠/背景なし）
+        Text(question, style: theme.textTheme.titleMedium),
+        const SizedBox(height: 12),
+
+        // 選択肢（ChoiceTileで統一）
+        for (final k in orderedKeys) ...[
+          ChoiceTile(
+            label: k,
+            text: choices[k]!,
+            state: stateOf(k),
+            onTap: null, // 結果表示なのでタップなし
+          ),
+          const SizedBox(height: 10),
+        ],
+
         const SizedBox(height: 16),
 
-        const Text('選択肢', style: TextStyle(fontWeight: FontWeight.bold)),
+        // 解答（枠/背景なし）
+        Text(
+          '解答',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 8),
+        Text(
+          'あなたの選択：${selectedAnswers.join('、')}／正解：${correctAnswers.join('、')}',
+          style: theme.textTheme.bodyLarge,
+        ),
 
-        ...labels.map((k) {
-          final text = choices[k]!;
-          final isCorrect = cor.contains(k);
-          final isSelected = sel.contains(k);
+        // 解説（枠/背景なし）
+        if (explanation.trim().isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Text(
+            '解説',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Text(explanation.trim(), style: theme.textTheme.bodyLarge),
+        ],
 
-          final Color border;
-          final Color? fill;
-          IconData? leadingIcon;
-
-          if (isCorrect && isSelected) {
-            border = Colors.teal;
-            fill = Colors.teal.withOpacity(0.10);
-            leadingIcon = Icons.check_circle;
-          } else if (isCorrect && !isSelected) {
-            border = Colors.orange;
-            fill = Colors.orange.withOpacity(0.10);
-            leadingIcon = Icons.info;
-          } else if (isSelected && !isCorrect) {
-            border = Colors.red;
-            fill = Colors.red.withOpacity(0.08);
-            leadingIcon = Icons.cancel;
-          } else {
-            border = Colors.black12;
-            fill = null;
-            leadingIcon = null;
-          }
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(
-              color: fill,
-              border: Border.all(color: border),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: ListTile(
-              leading: Row(
-                mainAxisSize: MainAxisSize.min,
+        // 根拠（枠/背景なし・プレーンテキスト）
+        if (rationales != null && rationales!.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Text(
+            '根拠',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          for (final k in orderedKeys.where((e) => rationales!.containsKey(e)))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (leadingIcon != null)
-                    Icon(leadingIcon, size: 20, color: border),
-                  if (leadingIcon != null) const SizedBox(width: 6),
-                  Text(k, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '$k  ',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  Expanded(
+                    child: Text(
+                      rationales![k]!.trim(),
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                  ),
                 ],
               ),
-              title: Text(text),
-              contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             ),
-          );
-        }),
-
-        const SizedBox(height: 12),
-        const Text('解説', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text(explanation.isEmpty ? '—' : explanation),
-
-        if (rationales != null && rationales!.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          const Text('各選択肢の理由', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          ...rationales!.entries.map((e) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text('【${e.key}】 ${e.value}'),
-            );
-          }),
         ],
       ],
     );

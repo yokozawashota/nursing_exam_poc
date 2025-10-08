@@ -1,4 +1,7 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
+
+import 'theme/app_theme.dart';                 // ← 追加：共通テーマ
 import 'screens/question_screen.dart';
 import 'screens/score_screen.dart';
 import 'screens/settings_screen.dart';
@@ -17,16 +20,9 @@ class NurAIApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'NurAI',
-      theme: ThemeData(
-        useMaterial3: false,
-        fontFamily: 'NotoSansJP',
-        scaffoldBackgroundColor: BaseScaffold.edgeBg,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: BaseScaffold.edgeBg,
-          foregroundColor: Colors.black87,
-          elevation: 0,
-        ),
-      ),
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),                 // ← ここだけで全体の見た目を統一
+      // darkTheme: AppTheme.dark(),           // （必要になったら用意して切替可）
       home: const HomeScreen(),
     );
   }

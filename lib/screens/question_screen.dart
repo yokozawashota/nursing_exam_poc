@@ -9,7 +9,7 @@ import '../widgets/question_controls.dart';
 import '../services/category_repository.dart';   // 候補取得
 import '../data/categories.dart';                // situationalDomains
 import '../services/question_service.dart';
-import '../models/answer_history.dart';          // ★ 追加：履歴保存
+import '../models/answer_history.dart';          // 履歴保存
 import 'result_screen.dart';
 
 class QuestionScreen extends StatefulWidget {
@@ -19,12 +19,12 @@ class QuestionScreen extends StatefulWidget {
 }
 
 class _QuestionScreenState extends State<QuestionScreen> {
-  // 出題形式（順番固定：必修問題 → 一般問題 → 状況設定問題）
+  // 出題形式
   static const String modeHisshu = '必修問題';
   static const String modeGeneral = '一般問題';
   static const String modeSituational = '状況設定問題';
 
-  // 状況設定の観点（完全一致表記）
+  // 状況設定の観点
   static const Map<String, String> _scenarioAspects = {
     'A': 'A. 対象や家族に切れ目のない支援を提供するための継続した看護',
     'B': 'B. 複合的な状況にある対象や、複合的に提供されている看護の状況を判断し、危険を回避する取組み',
@@ -33,7 +33,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
     'E': 'E. A～Dを促進するための多職種連携',
   };
 
-  String _mode = modeHisshu; // 初期は必修
+  String _mode = modeHisshu;
 
   // 一般／状況設定 共通の選択
   String _selectedDomain = CategoryRepository.generalDomains().isNotEmpty
@@ -57,13 +57,13 @@ class _QuestionScreenState extends State<QuestionScreen> {
   String _selectedHisshuMajor = '';
   List<String> get hisshuMajorItems => CategoryRepository.hisshuMajorItems();
 
-  // 状況設定：観点コード（'A'〜'E'）。nullならランダム
+  // 状況設定：観点
   String? _selectedScenarioAspectCode;
 
   // 画面状態
   bool _isLoading = false;
 
-  // 出題中の問題
+  // 出題中データ
   String? _questionText;
   Map<String, String>? _choices;
   List<String>? _correctAnswers; // 複数対応
@@ -81,10 +81,8 @@ class _QuestionScreenState extends State<QuestionScreen> {
   @override
   void initState() {
     super.initState();
-    // 必修の初期選択
     _selectedHisshuMajor =
     hisshuMajorItems.isNotEmpty ? hisshuMajorItems.first : '';
-    // 一般の初期選択
     _resetGeneralMajorAndMid(_selectedDomain);
   }
 
@@ -152,22 +150,25 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
       setState(() {
         _questionText = (data['question'] as String?)?.trim();
+
+        // choices（Map<String,String>）へ正規化
         final rawChoices = data['choices'] as Map?;
         _choices =
             rawChoices?.map((k, v) => MapEntry(k.toString(), v.toString()));
 
-        _correctAnswers =
-            (data['correctAnswers'] as List?)?.map((e) => e.toString()).toList() ??
-                [(data['correct'] ?? '').toString()];
+        // 正解（複数対応）
+        _correctAnswers = (data['correctAnswers'] as List?)
+            ?.map((e) => e.toString())
+            .toList() ??
+            [(data['correct'] ?? '').toString()];
+
+        // 問題タイプ
+        _questionKind = (data['questionKind'] as String?) ?? 'single';
 
         _explanation = (data['explanation'] as String?) ?? '';
-
         final rawRat = data['rationales'] as Map?;
         _rationales =
             rawRat?.map((k, v) => MapEntry(k.toString(), v.toString()));
-
-        _questionKind = (data['questionKind'] ?? 'single') as String;
-        _userAnswers = {};
 
         final rawMeta = data['meta'] as Map?;
         _meta = rawMeta?.map((k, v) => MapEntry(k.toString(), v));
@@ -179,9 +180,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
       );
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -200,7 +199,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
       return;
     }
 
-    // ★ 履歴保存（複数解答対応）
+    // 履歴保存（複数解答対応）
     try {
       final rec = AnswerRecord(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -221,7 +220,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
       );
       await AnswerHistory.instance.add(rec);
     } catch (e) {
-      // 保存失敗は致命ではないためトーストのみ
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('履歴の保存に失敗しました：$e')),
@@ -258,6 +256,11 @@ class _QuestionScreenState extends State<QuestionScreen> {
         ? situationalDomains
         : CategoryRepository.generalDomains();
 
+    // === 修正：select_incorrect でも常に選択できるように ===
+    final bool isMulti = _questionKind == 'multiple' ||
+        _questionKind == 'select_incorrect' ||
+        (_correctAnswers?.length ?? 0) >= 2;
+
     return BaseScaffold(
       title: '出題',
       body: SafeArea(
@@ -278,23 +281,30 @@ class _QuestionScreenState extends State<QuestionScreen> {
                           : CategoryRepository.generalDomains();
                       final dom = useList.contains(_selectedDomain)
                           ? _selectedDomain
-                          : (useList.isNotEmpty ? useList.first : _selectedDomain);
+                          : (useList.isNotEmpty
+                          ? useList.first
+                          : _selectedDomain);
                       _resetGeneralMajorAndMid(dom);
                     }
                   });
                 },
                 isLoading: _isLoading,
                 onGeneratePressed: _generateQuestion,
+
+                // 一般/状況設定
                 domainItems: domainList,
                 selectedDomain: domainList.contains(_selectedDomain)
                     ? _selectedDomain
-                    : (domainList.isNotEmpty ? domainList.first : _selectedDomain),
+                    : (domainList.isNotEmpty
+                    ? domainList.first
+                    : _selectedDomain),
                 onDomainChanged: (val) => _resetGeneralMajorAndMid(val),
-                majorItems: CategoryRepository.generalMajorsOf(_selectedDomain),
+                majorItems:
+                CategoryRepository.generalMajorsOf(_selectedDomain),
                 selectedMajor: _selectedMajor,
                 onMajorChanged: (val) {
-                  final mids =
-                  CategoryRepository.generalMidsOf(_selectedDomain, val);
+                  final mids = CategoryRepository.generalMidsOf(
+                      _selectedDomain, val);
                   setState(() {
                     _selectedMajor = val;
                     _selectedMid = mids.isNotEmpty ? mids.first : null;
@@ -302,16 +312,23 @@ class _QuestionScreenState extends State<QuestionScreen> {
                 },
                 useMid: _useMid,
                 onUseMidChanged: (v) => setState(() => _useMid = v),
-                midItems:
-                CategoryRepository.generalMidsOf(_selectedDomain, _selectedMajor),
+                midItems: CategoryRepository.generalMidsOf(
+                    _selectedDomain, _selectedMajor),
                 selectedMid: _selectedMid,
                 onMidChanged: (val) => setState(() => _selectedMid = val),
+
+                // 必修
                 hisshuMajorItems: hisshuMajorItems,
-                selectedHisshuMajor: hisshuMajorItems.contains(_selectedHisshuMajor)
+                selectedHisshuMajor:
+                hisshuMajorItems.contains(_selectedHisshuMajor)
                     ? _selectedHisshuMajor
-                    : (hisshuMajorItems.isNotEmpty ? hisshuMajorItems.first : ''),
+                    : (hisshuMajorItems.isNotEmpty
+                    ? hisshuMajorItems.first
+                    : ''),
                 onHisshuMajorChanged: (val) =>
                     setState(() => _selectedHisshuMajor = val),
+
+                // 状況設定
                 scenarioAspects: _scenarioAspects,
                 selectedScenarioAspectCode: _selectedScenarioAspectCode,
                 onScenarioAspectChanged: (val) =>
@@ -326,17 +343,18 @@ class _QuestionScreenState extends State<QuestionScreen> {
                   questionText: _questionText!,
                   choices: _choices!,
                   questionKind: _questionKind,
-                  // 単一
-                  selectedLabel: _questionKind != 'multiple'
-                      ? (_userAnswers.isNotEmpty ? _userAnswers.first : null)
+
+                  // 単一選択
+                  selectedLabel: !isMulti && _userAnswers.isNotEmpty
+                      ? _userAnswers.first
                       : null,
-                  onSelect: _questionKind != 'multiple'
+                  onSelect: !isMulti
                       ? (val) => setState(() => _userAnswers = {val})
                       : null,
-                  // 複数
-                  selectedLabels:
-                  _questionKind == 'multiple' ? _userAnswers.toList() : null,
-                  onToggle: _questionKind == 'multiple'
+
+                  // 複数選択（select_incorrect を含む）
+                  selectedLabels: isMulti ? _userAnswers.toList() : null,
+                  onToggle: isMulti
                       ? (val) {
                     setState(() {
                       if (_userAnswers.contains(val)) {
@@ -347,6 +365,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
                     });
                   }
                       : null,
+
                   onSubmit: _submitAnswer,
                 ),
             ],
