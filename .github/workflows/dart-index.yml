@@ -5,7 +5,7 @@ on:
     branches: ['**']
     paths:
       - 'lib/**/*.dart'
-      - 'tool/build_dart_index.dart'
+      - 'tool/**/*.dart'
       - '.github/workflows/dart-index.yml'
       - 'pubspec.yaml'
   workflow_dispatch:
@@ -21,18 +21,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: dart-lang/setup-dart@v1
+      # Flutter SDK を入れる（Dart 単体ではなく）
+      - uses: subosito/flutter-action@v2
         with:
-          sdk: stable
+          flutter-version: '3.24.0'   # 例：安定版。必要ならプロジェクトに合わせて変更
 
       - name: Install dependencies
-        run: dart pub get
+        run: flutter pub get
 
       - name: Generate split indices
         shell: bash
         run: |
           set -euo pipefail
-          dart tool/build_dart_index.dart
+          # あなたのスクリプト名/場所に合わせて。例：tool/build_dart_index.dart
+          dart run tool/build_dart_index.dart
+          echo "Generated files:"
+          ls -la .dart-index || true
 
       - name: Commit index files
         shell: bash
