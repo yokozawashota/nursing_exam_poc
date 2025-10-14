@@ -1,20 +1,23 @@
-// lib/widgets/result_block.dart
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import 'choice_tile.dart';
+import 'explanation_block.dart';
 
-/// 解答結果の表示用ブロック。
-/// - 選択肢の配色ルールは ChoiceTile に統一（正答=薄緑／誤答で選択=薄赤／その他=通常）
-/// - 「解説」「根拠」は枠/背景なしのプレーンテキストで表示
+/// 解答結果の表示ブロック
+/// - 問題文/解説は ExplanationBlock（枠・背景なし）で統一
+/// - 選択肢は ChoiceTile で統一（色味・丸囲いなし）
+/// - 「解答：A と D（2つ）」の行を解説の前に必ず表示
+/// - questionKind は任意（'select_incorrect' の時は文言に (誤っているもの) を付与）
 class ResultBlock extends StatelessWidget {
   const ResultBlock({
     super.key,
     required this.question,
-    required this.choices,           // { 'A': '...', ... }
-    required this.selectedAnswers,   // 例 ['B','D']
-    required this.correctAnswers,    // 例 ['C','E']
+    required this.choices,            // Map<'A'..'E', text>
+    required this.selectedAnswers,    // List<'A'..'E'>
+    required this.correctAnswers,     // List<'A'..'E'>
     required this.explanation,
-    this.rationales,                 // 例 { 'A': '...', 'B': '...' }
-    this.questionKind,               // 'single' | 'multiple' | 'select_incorrect'（任意）
+    this.rationales,                  // Map<label, text>?
+    this.questionKind,                // 'single' | 'multiple' | 'select_incorrect'（任意）
   });
 
   final String question;
@@ -23,97 +26,126 @@ class ResultBlock extends StatelessWidget {
   final List<String> correctAnswers;
   final String explanation;
   final Map<String, String>? rationales;
-
-  /// 画面上の表示には必須ではないが、将来の注記や整合チェックに使えるよう受け取る
   final String? questionKind;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final orderedKeys =
-    ['A', 'B', 'C', 'D', 'E'].where((k) => choices.containsKey(k)).toList();
-    final selected = selectedAnswers.toSet();
-    final correct  = correctAnswers.toSet();
+    // 表示順は A..E の昇順に統一
+    final orderedKeys = ['A', 'B', 'C', 'D', 'E'].where(choices.containsKey).toList();
 
-    ChoiceTileState stateOf(String label) {
-      if (correct.contains(label)) return ChoiceTileState.correct;
-      if (selected.contains(label)) return ChoiceTileState.incorrect;
-      return ChoiceTileState.normal;
-    }
+    final sel = selectedAnswers.toSet();
+    final cor = correctAnswers.toSet();
+
+    final isIncorrect = (questionKind ?? '').contains('incorrect');
+    final correctCount = cor.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 問題文（枠/背景なし）
-        Text(question, style: theme.textTheme.titleMedium),
-        const SizedBox(height: 12),
-
-        // 選択肢（ChoiceTileで統一）
-        for (final k in orderedKeys) ...[
-          ChoiceTile(
-            label: k,
-            text: choices[k]!,
-            state: stateOf(k),
-            onTap: null, // 結果表示なのでタップなし
-          ),
-          const SizedBox(height: 10),
-        ],
-
-        const SizedBox(height: 16),
-
-        // 解答（枠/背景なし）
-        Text(
-          '解答',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        // ===== 問題 =====
+        ExplanationBlock(
+          title: '問題',
+          body: question,
         ),
+        const SizedBox(height: 20),
+
+        // ===== 選択肢 =====
+        Text('選択肢', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
-        Text(
-          'あなたの選択：${selectedAnswers.join('、')}／正解：${correctAnswers.join('、')}',
-          style: theme.textTheme.bodyLarge,
-        ),
+        ...orderedKeys.map((label) {
+          final text = choices[label] ?? '';
+          final userSelected = sel.contains(label);
+          final isCorrect = cor.contains(label);
 
-        // 解説（枠/背景なし）
+          ChoiceTileState state = ChoiceTileState.normal;
+          if (userSelected && isCorrect) {
+            state = ChoiceTileState.correct;
+          } else if (userSelected && !isCorrect) {
+            state = ChoiceTileState.incorrect;
+          } else if (!userSelected && isCorrect) {
+            state = ChoiceTileState.correct;
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: ChoiceTile(
+              label: label,
+              text: text,
+              state: state,
+              dense: true,
+            ),
+          );
+        }),
+
+        const SizedBox(height: 20),
+
+        // ===== 解答の一文（解説の前に）=====
+        _answerLine(context, isIncorrect, correctCount, cor),
+
+        const SizedBox(height: 8),
+
+        // ===== 解説 =====
         if (explanation.trim().isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Text(
-            '解説',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ExplanationBlock(
+            title: '解説',
+            body: explanation.trim(),
           ),
-          const SizedBox(height: 8),
-          Text(explanation.trim(), style: theme.textTheme.bodyLarge),
+          const SizedBox(height: 20),
         ],
 
-        // 根拠（枠/背景なし・プレーンテキスト）
+        // ===== 根拠 =====
         if (rationales != null && rationales!.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Text(
-            '根拠',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
+          Text('根拠', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
-          for (final k in orderedKeys.where((e) => rationales!.containsKey(e)))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$k  ',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  Expanded(
-                    child: Text(
-                      rationales![k]!.trim(),
-                      style: theme.textTheme.bodyLarge,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          ..._rationaleTiles(orderedKeys, cor),
         ],
       ],
     );
+  }
+
+  /// 「解答：A と D（2つ）」の行
+  Widget _answerLine(BuildContext context, bool isIncorrect, int count, Set<String> cor) {
+    final theme = Theme.of(context);
+    final list = _labelsToJoined(cor.toList()..sort());
+    final suffix = count >= 2 ? '（${count}つ）' : '';
+    final head = isIncorrect ? '解答（誤っているもの）' : '解答';
+    return Text(
+      '$head：$list$suffix',
+      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+    );
+  }
+
+  /// 根拠のタイル群（ChoiceTile で正誤色を合わせる）
+  List<Widget> _rationaleTiles(List<String> orderedKeys, Set<String> cor) {
+    final items = <Widget>[];
+    for (final k in orderedKeys) {
+      final txt = rationales?[k]?.trim() ?? '';
+      if (txt.isEmpty) continue;
+      final isCorrect = cor.contains(k);
+      items.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: ChoiceTile(
+            label: k,
+            text: txt,
+            state: isCorrect ? ChoiceTileState.correct : ChoiceTileState.incorrect,
+            dense: true,
+          ),
+        ),
+      );
+    }
+    return items;
+  }
+
+  /// ['A','C','D'] -> 'A と C と D'
+  String _labelsToJoined(List<String> labels) {
+    if (labels.isEmpty) return '';
+    if (labels.length == 1) return labels.first;
+    return [
+      ...labels.sublist(0, labels.length - 1).map((e) => e),
+      'と ${labels.last}'
+    ].join(' ');
   }
 }

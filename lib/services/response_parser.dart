@@ -4,7 +4,7 @@
 // 新仕様：LLMの出力を尊重し、整形・矯正は最小限（choices / correctAnswers の整合性チェックのみ）。
 
 import 'dart:convert';
-import 'dart:math';
+import 'package:flutter/foundation.dart';
 
 class ResponseParser {
   /// content(JSON文字列) → 画面がそのまま使える Map に整形
@@ -29,7 +29,6 @@ class ResponseParser {
     try {
       obj = jsonDecode(content) as Map<String, dynamic>;
     } catch (_) {
-      // 「```json ... ```」囲み対策
       final extracted = _extractJsonObject(content);
       obj = jsonDecode(extracted) as Map<String, dynamic>;
     }
@@ -52,15 +51,12 @@ class ResponseParser {
       for (final k in orderedKeys) k: choices[k]!,
     };
 
-    // 正答ラベルは存在するキーのみに限定
     final filteredCorrect =
     correctAnswers.where(orderedChoices.containsKey).toList();
 
-    // デバッグログ
     _debugPrint('--- ResponseParser ---');
     _debugPrint('kind=$kind  choices=${orderedChoices.keys}  correct=$filteredCorrect');
 
-    // ===== 出力 =====
     return {
       'question': question,
       'choices': orderedChoices,
@@ -106,31 +102,9 @@ class ResponseParser {
     if (obj['correctAnswers'] is List) {
       return (obj['correctAnswers'] as List)
           .map((e) => _toLabel(e))
+          .where((label) => orderedLabels.contains(label))
           .toList();
     }
-
-    if (obj['correctIndices'] is List) {
-      final idxs = (obj['correctIndices'] as List)
-          .map((e) => int.tryParse(e.toString()))
-          .whereType<int>()
-          .toList();
-      return idxs
-          .where((i) => i >= 0 && i < orderedLabels.length)
-          .map((i) => orderedLabels[i])
-          .toList();
-    }
-
-    if (obj['correctIndex'] != null) {
-      final i = int.tryParse(obj['correctIndex'].toString());
-      if (i != null && i >= 0 && i < orderedLabels.length) {
-        return [orderedLabels[i]];
-      }
-    }
-
-    if (obj['correct'] != null) {
-      return [_toLabel(obj['correct'])];
-    }
-
     return [];
   }
 
@@ -143,13 +117,9 @@ class ResponseParser {
 
   static String _toLabel(dynamic v) {
     final s = v.toString().trim();
-    final m = RegExp(r'^([A-E])').firstMatch(s);
-    if (m != null) return m.group(1)!;
-
-    final i = int.tryParse(s);
-    if (i != null && i > 0 && i <= 5) {
-      return String.fromCharCode('A'.codeUnitAt(0) + i - 1);
-    }
+    if (s.isEmpty) return 'A';
+    final first = s[0].toUpperCase();
+    if ('ABCDE'.contains(first)) return first;
     return 'A';
   }
 
@@ -178,7 +148,6 @@ class ResponseParser {
   }
 
   static void _debugPrint(String msg) {
-    // ignore: avoid_print
-    print('[ResponseParser] $msg');
+    debugPrint('[ResponseParser] $msg');
   }
 }

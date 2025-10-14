@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
-/// 選択肢カード（全画面統一UI）
+/// 選択肢カードの共通UI.
+/// - ラベル(ABCD)は素のテキスト（丸囲いなし）
+/// - normal 背景は画面（Scaffold）と同じ色に
+/// - selected & correct は薄いグリーン、incorrect は薄いレッド
+/// - trailing で右端にバッジ等を表示できる（結果画面用）
 class ChoiceTile extends StatelessWidget {
   const ChoiceTile({
     super.key,
@@ -23,26 +27,37 @@ class ChoiceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cc = context.choiceColors;   // トークン
-    final radius = BorderRadius.circular(12);
 
-    // 色トークンに合わせて切替
-    Color bg, border;
+    // トークン適用
+    final Color bgScaffold = theme.scaffoldBackgroundColor;
+    final Color borderNormal = AppTheme.borderNeutral;
+    final Color bgNormal     = bgScaffold;
+
+    final Color borderCorrect = AppTheme.borderCorrect;
+    final Color bgCorrect     = AppTheme.bgCorrect;
+
+    final Color borderIncorrect = AppTheme.borderWrong;
+    final Color bgIncorrect     = AppTheme.bgWrong;
+
+    Color borderColor;
+    Color bgColor;
     switch (state) {
       case ChoiceTileState.normal:
-        bg = cc.normalBg;
-        border = cc.normalBorder;
+        borderColor = borderNormal;
+        bgColor = bgNormal;
         break;
       case ChoiceTileState.selected:
       case ChoiceTileState.correct:
-        bg = cc.selectedBg;
-        border = cc.selectedBorder;
+        borderColor = borderCorrect;
+        bgColor = bgCorrect;
         break;
       case ChoiceTileState.incorrect:
-        bg = cc.incorrectBg;
-        border = cc.incorrectBorder;
+        borderColor = borderIncorrect;
+        bgColor = bgIncorrect;
         break;
     }
+
+    final radius = BorderRadius.circular(AppTheme.rMd);
 
     return Material(
       color: Colors.transparent,
@@ -52,19 +67,16 @@ class ChoiceTile extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: dense ? 10 : 14),
           decoration: BoxDecoration(
-            color: bg,
-            border: Border.all(color: border),
+            color: bgColor,
+            border: Border.all(color: borderColor),
             borderRadius: radius,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // ABCD ラベル（丸囲いなし）
               Text(
                 label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(width: 10),
               Expanded(
