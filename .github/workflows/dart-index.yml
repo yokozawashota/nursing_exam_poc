@@ -1,11 +1,11 @@
-name: Build dart-index.json
+name: Build folder-split dart indices
 
 on:
   push:
     branches: ['**']
     paths:
       - 'lib/**/*.dart'
-      - 'tool/dart_index.dart'
+      - 'tool/build_dart_index.dart'
       - '.github/workflows/dart-index.yml'
   workflow_dispatch:
 
@@ -19,18 +19,23 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
-      - name: Generate dart-index.json
-        run: dart tool/dart_index.dart > dart-index.json
-      - name: Commit dart-index.json
+
+      - name: Generate folder-split dart indices
         run: |
-          if git diff --quiet --exit-code -- dart-index.json; then
-            echo "No changes, skip commit"; exit 0
+          dart run tool/build_dart_index.dart
+
+      - name: Commit generated indices
+        run: |
+          if git diff --quiet --exit-code -- .indices; then
+            echo "No changes, skip commit"
+            exit 0
           fi
           git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add dart-index.json
-          git commit -m "ci: update dart-index.json"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .indices
+          git commit -m "ci: update folder-split dart indices"
           git push
