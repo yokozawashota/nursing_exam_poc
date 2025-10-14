@@ -7,6 +7,7 @@ on:
       - 'lib/**/*.dart'
       - 'tool/build_dart_index.dart'
       - '.github/workflows/dart-index.yml'
+      - 'pubspec.yaml'
   workflow_dispatch:
 
 permissions:
@@ -24,11 +25,13 @@ jobs:
         with:
           sdk: stable
 
+      - name: Install dependencies
+        run: dart pub get
+
       - name: Generate split indices
         shell: bash
         run: |
           set -euo pipefail
-          dart --version
           dart tool/build_dart_index.dart
 
       - name: Commit index files
