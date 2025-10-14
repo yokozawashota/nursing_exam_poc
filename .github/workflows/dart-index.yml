@@ -17,23 +17,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ✅ ソース取得
+      # 1) リポジトリ取得
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ✅ Flutter 3.35.6（Dart 3.9.x 同梱）をセットアップ
+      # 2) Flutter 3.35.6（Dart 3.9.x）をセットアップ
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.6'
           channel: 'stable'
           cache: true
 
-      # ✅ 依存関係を解決
+      # 3) 依存解決（pubspecが無いCIでも失敗しないように || true）
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get || true
 
-      # ✅ フォルダ単位で dart-index.json を生成
+      # 4) フォルダ単位のインデックス生成
       - name: Generate split indices
         shell: bash
         run: |
@@ -41,14 +41,12 @@ jobs:
           echo "Cleaning previous .dart-index..."
           rm -rf .dart-index
           mkdir -p .dart-index
-          
           echo "Running build_dart_index.dart..."
           dart tool/build_dart_index.dart
-          
-          echo "Generated files:"
-          ls -la .dart-index || echo "No output generated!"
+          echo "Generated files under .dart-index:"
+          ls -laR .dart-index || echo "No output generated!"
 
-      # ✅ 更新があればコミットして push
+      # 5) 変更があればコミット・プッシュ
       - name: Commit index files
         shell: bash
         run: |

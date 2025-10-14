@@ -1,96 +1,126 @@
+// tool/build_dart_index.dart
+//
+// lib/ 配下の .dart ファイルを走査して、第一階層フォルダごとに JSON を分割出力します。
+// 出力先: .dart-index/
+//   - .dart-index/lib/<top-level>/index.json
+//   - .dart-index/index.json  … カタログ（フォルダ一覧・件数・生成時刻）
+//
+// JSON にはファイルの相対パス、サイズ、行数、SHA1、内容(content)を含めます。
+// ※ リポジトリが巨大な場合は必要に応じて content を削る/短縮する等で調整してください。
+
 import 'dart:convert';
 import 'dart:io';
-import 'package:crypto/crypto.dart';
+import 'package:crypto/crypto.dart' show sha1;
 
-/// .dart-index/ 以下にフォルダ単位の index.json を作成し、
-/// ルートに catalog.json（全フォルダの一覧）も出力する。
-///
-/// グルーピング方針：lib 配下の「相対フォルダパス」ごと（ファイル直下は lib/ に寄せる）
-Future<void> main() async {
-  final outDir = Directory('.dart-index');
-  if (!outDir.existsSync()) outDir.createSync(recursive: true);
-
+void main(List<String> args) async {
   final libDir = Directory('lib');
-  if (!libDir.existsSync()) {
-    stderr.writeln('lib/ not found.');
+  if (!await libDir.exists()) {
+    stderr.writeln('lib/ が見つかりません。プロジェクト直下で実行してください。');
     exitCode = 1;
     return;
   }
 
-  // lib 以下の .dart を走査
-  final files = libDir
-      .listSync(recursive: true, followLinks: false)
-      .whereType<File>()
-      .where((f) => f.path.endsWith('.dart'))
-      .toList();
-
-  // フォルダごとにグルーピング（lib/widgets/a.dart -> lib/widgets）
-  final Map<String, List<File>> byFolder = {};
-  for (final f in files) {
-    final rel = _relativeFrom(f.path, base: 'lib');        // 例: widgets/a.dart or main.dart
-    final folder = rel.contains(Platform.pathSeparator)
-        ? 'lib/${rel.split(Platform.pathSeparator).first}'
-        : 'lib'; // 直下ファイルは lib にまとめる
-    byFolder.putIfAbsent(folder, () => []).add(f);
+  final outRoot = Directory('.dart-index');
+  if (!await outRoot.exists()) {
+    await outRoot.create(recursive: true);
   }
 
-  // フォルダ別 index.json を出力
-  final generatedAt = DateTime.now().toUtc().toIso8601String() + 'Z';
-  final List<Map<String, dynamic>> catalogFolders = [];
+  // 収集: フォルダ => ファイル情報リスト
+  final Map<String, List<Map<String, dynamic>>> buckets = {};
 
-  for (final entry in byFolder.entries.toList()..sort((a, b) => a.key.compareTo(b.key))) {
-    final folder = entry.key;       // 例: lib/widgets
-    final fileList = entry.value;
+  final dartFiles = await _listDartFiles(libDir);
+  for (final f in dartFiles) {
+    final relPath = _relativePath(f.path.replaceAll('\\', '/'), base: 'lib');
+    final topLevel = _topLevelBucket(relPath); // 例: "services" / "_root"
+    final content = await f.readAsString();
+    final stat = await f.stat();
 
-    final items = <Map<String, dynamic>>[];
-    for (final f in fileList..sort((a, b) => a.path.compareTo(b.path))) {
-      final relPath = 'lib/${_relativeFrom(f.path, base: 'lib')}';
-      final bytes = await f.readAsBytes();
-      final hash = sha1.convert(bytes).toString();
-      items.add({
-        'path': relPath,
-        'size': bytes.length,
-        'sha1': hash,
-      });
-    }
+    final lines = '\n'.allMatches(content).length + 1;
+    final hash = sha1.convert(utf8.encode(content)).toString();
 
-    final payload = {
-      'folder': folder,
-      'generatedAt': generatedAt,
-      'files': items,
+    final info = <String, dynamic>{
+      'path': 'lib/$relPath',                // リポジトリ相対（lib/付き）
+      'rel': relPath,                        // lib/からの相対
+      'name': relPath.split('/').last,       // ファイル名
+      'size': stat.size,                     // バイト
+      'lines': lines,                        // 行数
+      'sha1': hash,                          // 内容のハッシュ
+      'content': content,                    // ファイル内容
     };
 
-    final folderFile = File('${outDir.path}/${_sanitizeFolder(folder)}.index.json');
-    folderFile.createSync(recursive: true);
-    folderFile.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(payload));
-
-    catalogFolders.add({'folder': folder, 'index': folderFile.path});
+    buckets.putIfAbsent(topLevel, () => <Map<String, dynamic>>[]).add(info);
   }
 
-  // ルート catalog.json
-  final catalog = {
-    'generatedAt': generatedAt,
-    'folders': catalogFolders,
+  // 出力: フォルダごと
+  final outCatalog = <Map<String, dynamic>>[];
+  for (final entry in buckets.entries) {
+    final folder = entry.key; // 例: "services" / "_root"
+    // 並びを安定化（パス昇順）
+    entry.value.sort((a, b) => (a['path'] as String).compareTo(b['path'] as String));
+
+    final outDir = Directory('.dart-index/lib/$folder');
+    await outDir.create(recursive: true);
+
+    final jsonObj = {
+      'folder': folder,
+      'base': folder == '_root' ? 'lib' : 'lib/$folder',
+      'generatedAt': DateTime.now().toUtc().toIso8601String() + 'Z',
+      'count': entry.value.length,
+      'files': entry.value,
+    };
+
+    final dst = File('${outDir.path}/index.json');
+    await dst.writeAsString(const JsonEncoder.withIndent('  ').convert(jsonObj), encoding: utf8);
+
+    outCatalog.add({
+      'folder': folder,
+      'base': folder == '_root' ? 'lib' : 'lib/$folder',
+      'count': entry.value.length,
+      'index': 'lib/$folder/index.json',
+    });
+  }
+
+  // 出力: ルートのカタログ
+  outCatalog.sort((a, b) => (a['folder'] as String).compareTo(b['folder'] as String));
+  final root = {
+    'folders': outCatalog,
+    'generatedAt': DateTime.now().toUtc().toIso8601String() + 'Z',
+    'note': 'Per-folder dart index generated by tool/build_dart_index.dart',
   };
-  File('${outDir.path}/catalog.json')
-      .writeAsStringSync(const JsonEncoder.withIndent('  ').convert(catalog));
+  final rootFile = File('.dart-index/index.json');
+  await rootFile.writeAsString(const JsonEncoder.withIndent('  ').convert(root), encoding: utf8);
 
-  stdout.writeln('Generated ${catalogFolders.length} folder indices into ${outDir.path}/');
-}
-
-String _relativeFrom(String full, {required String base}) {
-  final normalized = full.replaceAll('\\', '/');
-  final basePrefix = '$base/';
-  final idx = normalized.indexOf(basePrefix);
-  if (idx >= 0) {
-    return normalized.substring(idx + basePrefix.length);
+  // 目視用ログ
+  stdout.writeln('Generated ${outCatalog.length} folder indices under .dart-index/');
+  for (final f in outCatalog) {
+    stdout.writeln(' - ${f['index']} (${f['count']} files)');
   }
-  // 予備
-  final i2 = normalized.lastIndexOf('/');
-  return i2 >= 0 ? normalized.substring(i2 + 1) : normalized;
 }
 
-String _sanitizeFolder(String folder) {
-  // lib/widgets -> lib_widgets など、ファイル名として使えるように
-  return folder.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+/// lib/ 配下の .dart ファイルを再帰的に列挙
+Future<List<File>> _listDartFiles(Directory libDir) async {
+  final out = <File>[];
+  await for (final e in libDir.list(recursive: true, followLinks: false)) {
+    if (e is File && e.path.endsWith('.dart')) {
+      // .g.dart 等も拾いたくない場合はここで除外
+      out.add(e);
+    }
+  }
+  return out;
+}
+
+/// lib/ からの相対パスに変換（前提: absPath が lib/ を含む）
+String _relativePath(String absPath, {required String base}) {
+  final marker = '$base/';
+  final idx = absPath.indexOf(marker);
+  if (idx < 0) return absPath; // 想定外だが保険
+  return absPath.substring(idx + marker.length);
+}
+
+/// 第一階層のバケット名を返す。lib/直下は "_root"
+String _topLevelBucket(String relPath) {
+  final parts = relPath.split('/');
+  if (parts.isEmpty) return '_root';
+  if (parts.length == 1) return '_root';
+  return parts.first; // 例: services, screens, models, ...
 }
