@@ -14,36 +14,47 @@ permissions:
 
 jobs:
   build:
-    # bot のコミットでの自己起動はスキップ
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      # ✅ ソース取得
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
+      # ✅ Flutter 3.35.6（Dart 3.9.x 同梱）をセットアップ
+      - uses: subosito/flutter-action@v2
         with:
-          sdk: stable
+          flutter-version: '3.35.6'
+          channel: 'stable'
+          cache: true
 
+      # ✅ 依存関係を解決
+      - name: Install dependencies
+        run: flutter pub get
+
+      # ✅ フォルダ単位で dart-index.json を生成
       - name: Generate split indices
+        shell: bash
         run: |
           set -euo pipefail
+          echo "Cleaning previous .dart-index..."
           rm -rf .dart-index
           mkdir -p .dart-index
+          
+          echo "Running build_dart_index.dart..."
           dart tool/build_dart_index.dart
+          
           echo "Generated files:"
-          ls -la .dart-index || true
+          ls -la .dart-index || echo "No output generated!"
 
+      # ✅ 更新があればコミットして push
       - name: Commit index files
+        shell: bash
         run: |
-          set -euo pipefail
-          # 変更がなければ抜ける
+          set -e
           if git diff --quiet --exit-code -- .dart-index; then
-            echo "No changes, skip commit"
+            echo "No changes detected. Skip commit."
             exit 0
           fi
           git config user.name  "github-actions[bot]"
