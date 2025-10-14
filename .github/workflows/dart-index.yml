@@ -5,9 +5,8 @@ on:
     branches: ['**']
     paths:
       - 'lib/**/*.dart'
-      - 'tool/**/*.dart'
+      - 'tool/build_dart_index.dart'
       - '.github/workflows/dart-index.yml'
-      - 'pubspec.yaml'
   workflow_dispatch:
 
 permissions:
@@ -21,10 +20,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Flutter SDK を入れる（Dart 単体ではなく）
+      # ✅ Flutter 3.35.6（Dart 3.9.x 含む）を使用
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'   # 例：安定版。必要ならプロジェクトに合わせて変更
+          flutter-version: '3.35.6'
+          channel: 'stable'
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -33,15 +34,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # あなたのスクリプト名/場所に合わせて。例：tool/build_dart_index.dart
-          dart run tool/build_dart_index.dart
+          rm -rf .dart-index
+          mkdir -p .dart-index
+          # あなたのスクリプトを実行（※パスは repo ルートから）
+          dart tool/build_dart_index.dart
           echo "Generated files:"
-          ls -la .dart-index || true
+          ls -la .dart-index
 
       - name: Commit index files
         shell: bash
         run: |
-          set -euo pipefail
+          set -e
           if git diff --quiet --exit-code -- .dart-index; then
             echo "No changes, skip commit"
             exit 0
