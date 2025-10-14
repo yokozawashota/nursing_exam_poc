@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2025-10-14T15:42:31.831929ZZ",
+  "folders": [
+    {
+      "folder": "lib/_root",
+      "index": "lib/_root/index.json",
+      "count": 1
+    },
+    {
+      "folder": "lib/data",
+      "index": "lib/data/index.json",
+      "count": 13
+    },
+    {
+      "folder": "lib/models",
+      "index": "lib/models/index.json",
+      "count": 3
+    },
+    {
+      "folder": "lib/screens",
+      "index": "lib/screens/index.json",
+      "count": 6
+    },
+    {
+      "folder": "lib/services",
+      "index": "lib/services/index.json",
+      "count": 11
+    },
+    {
+      "folder": "lib/theme",
+      "index": "lib/theme/index.json",
+      "count": 1
+    },
+    {
+      "folder": "lib/utils",
+      "index": "lib/utils/index.json",
+      "count": 1
+    },
+    {
+      "folder": "lib/widgets",
+      "index": "lib/widgets/index.json",
+      "count": 10
+    }
+  ]
+}
