@@ -17,19 +17,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) ソース取得
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # 2) Flutter 3.35.6（Dart 3.9.x 同梱）
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.6'
-          channel: 'stable'
+          channel: stable
           cache: true
 
+      # 3) 依存解決（pubspec に tool 実行に不要でも OK）
       - name: Install dependencies
-        run: flutter pub get || true
+        run: flutter pub get
 
+      # 4) フォルダ毎に dart index を生成
       - name: Generate split indices
         shell: bash
         run: |
@@ -39,21 +43,28 @@ jobs:
           mkdir -p .dart-index
 
           echo "Running build_dart_index.dart..."
-          flutter pub run tool/build_dart_index.dart
+          dart tool/build_dart_index.dart
 
           echo "Generated files:"
-          ls -laR .dart-index || echo "No output generated!"
+          ls -la .dart-index || true
+          find .dart-index -maxdepth 2 -type f -name "index.json" -print | sed 's/^/ - /'
 
+      # 5) 変更があればコミット＆プッシュ
       - name: Commit index files
         shell: bash
         run: |
           set -e
-          if git diff --quiet --exit-code -- .dart-index; then
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 新規ファイルも含めてステージング
+          git add .dart-index
+
+          # ステージ済みの差分が無ければスキップ
+          if git diff --cached --quiet; then
             echo "No changes detected. Skip commit."
             exit 0
           fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .dart-index
+
           git commit -m "ci: update folder-split dart indices"
           git push
