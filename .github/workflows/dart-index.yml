@@ -5,7 +5,7 @@ on:
     branches: ['**']
     paths:
       - 'lib/**/*.dart'
-      - 'tool/**'
+      - 'tool/build_dart_index.dart'
       - '.github/workflows/dart-index.yml'
   workflow_dispatch:
 
@@ -25,28 +25,22 @@ jobs:
           sdk: stable
 
       - name: Generate split indices
+        shell: bash
         run: |
-          set -e
-          mkdir -p .dart-index
-          # 例）分割出力するスクリプト（あなたの実装に合わせてコマンドを変更）
-          # dart tool/dart_index.dart --split --out .dart-index
-          dart tool/dart_index.dart --out-dir .dart-index
-
-          echo "Generated files:"
-          ls -la .dart-index
+          set -euo pipefail
+          dart --version
+          dart tool/build_dart_index.dart
 
       - name: Commit index files
+        shell: bash
         run: |
-          # 生成物のみをステージング（追加/更新/削除すべて）
-          git add -A .dart-index
-
-          # ステージ済みに差分がなければスキップ
-          if git diff --cached --quiet --exit-code; then
+          set -euo pipefail
+          if git diff --quiet --exit-code -- .dart-index; then
             echo "No changes, skip commit"
             exit 0
           fi
-
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .dart-index
           git commit -m "ci: update folder-split dart indices"
-          git push　
+          git push
