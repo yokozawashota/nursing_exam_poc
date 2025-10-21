@@ -1,0 +1,14 @@
+{
+  "folder": "lib/utils",
+  "generatedAt": "2025-10-14T15:42:31.831929ZZ",
+  "count": 1,
+  "items": [
+    {
+      "path": "lib/utils/debug_utils.dart",
+      "file": "debug_utils.dart",
+      "size": 198,
+      "modified": "2025-10-14T15:42:13.401Z",
+      "content": "class DebugUtils {\n  static String firstLines(String s, {int maxChars = 300}) {\n    final t = s.replaceAll('\\n', ' ');\n    return (t.length <= maxChars) ? t : '${t.substring(0, maxChars)}...';\n  }\n}"
+    }
+  ]
+}
