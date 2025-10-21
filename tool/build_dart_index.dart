@@ -59,21 +59,38 @@ Future<void> main() async {
   final sortedKeys = buckets.keys.toList()..sort(); // 安定した順序
   for (final key in sortedKeys) {
     final items = buckets[key]!..sort((a, b) => (a['path'] as String).compareTo(b['path'] as String));
+
+    // 1) 従来: .dart-index/<key>/index.json
     final destDir = Directory(p.join(outDir, key)); // 例: .dart-index/lib/services
     await destDir.create(recursive: true);
 
-    final outFile = File(p.join(destDir.path, 'index.json'));
     final obj = {
       'folder': key,                       // 例: lib/services
       'generatedAt': started.toIso8601String() + 'Z',
       'count': items.length,
       'items': items,
     };
-    await outFile.writeAsString(const JsonEncoder.withIndent('  ').convert(obj));
 
+    final nestedFile = File(p.join(destDir.path, 'index.json'));
+    await nestedFile.writeAsString(const JsonEncoder.withIndent('  ').convert(obj));
+
+    // 2) 追加: .dart-index/<親フォルダ>/<フォルダ名>.index.json
+    //   例:
+    //     key = "lib/services" → 親 "lib"、フォルダ名 "services" → ".dart-index/lib/services.index.json"
+    //     key = "lib/_root"    → 親 "lib"、フォルダ名 "_root"    → ".dart-index/lib/_root.index.json"
+    final folderName = p.basename(key);           // services / _root
+    final parentDirName = p.dirname(key);         // lib
+    final flatDir = Directory(p.join(outDir, parentDirName));
+    await flatDir.create(recursive: true);
+
+    final flatFile = File(p.join(flatDir.path, '$folderName.index.json'));
+    await flatFile.writeAsString(const JsonEncoder.withIndent('  ').convert(obj));
+
+    // カタログ用のエントリ（互換の "index" に加え "flatIndex" を追加）
     folders.add({
       'folder': key,
-      'index': _relative(outFile.path, from: outDir), // 例: lib/services/index.json
+      'index': _relative(nestedFile.path, from: outDir),     // 例: lib/services/index.json
+      'flatIndex': _relative(flatFile.path, from: outDir),   // 例: lib/services.index.json
       'count': items.length,
     });
   }
@@ -85,6 +102,7 @@ Future<void> main() async {
   stdout.writeln('Generated ${folders.length} folder indices under $outDir/');
   for (final f in folders) {
     stdout.writeln(' - ${f['folder']}/index.json (${f['count']} files)');
+    stdout.writeln('   -> ${f['flatIndex']}');
   }
 }
 
