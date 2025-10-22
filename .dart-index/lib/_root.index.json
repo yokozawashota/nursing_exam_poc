@@ -1,13 +1,13 @@
 {
   "folder": "lib/_root",
-  "generatedAt": "2025-10-21T18:00:07.928930ZZ",
+  "generatedAt": "2025-10-22T02:20:39.442982ZZ",
   "count": 1,
   "items": [
     {
       "path": "lib/main.dart",
       "file": "main.dart",
       "size": 2453,
-      "modified": "2025-10-21T17:59:03.106Z",
+      "modified": "2025-10-22T02:20:17.044Z",
       "content": "import 'package:flutter/material.dart';\nimport 'theme/app_theme.dart';\nimport 'screens/question_screen.dart';\nimport 'screens/score_screen.dart';\nimport 'screens/settings_screen.dart';\nimport 'screens/answer_history_screen.dart';\nimport 'widgets/base_scaffold.dart';\nimport 'widgets/app_buttons.dart';\n\nvoid main() {\n  runApp(const NurAIApp());\n}\n\nclass NurAIApp extends StatelessWidget {\n  const NurAIApp({super.key});\n\n  @override\n  Widget build(BuildContext context) {\n    return MaterialApp(\n      title: 'NurAI',\n      theme: AppTheme.light(),\n      home: const HomeScreen(),\n    );\n  }\n}\n\nclass HomeScreen extends StatelessWidget {\n  const HomeScreen({super.key});\n\n  void _go(BuildContext context, Widget page) {\n    Navigator.push(context, MaterialPageRoute(builder: (_) => page));\n  }\n\n  @override\n  Widget build(BuildContext context) {\n    return BaseScaffold(\n      title: 'NurAI',\n      showBack: false,\n      actions: [\n        IconButton(\n          tooltip: '設定',\n          onPressed: () => _go(context, const SettingsScreen()),\n          icon: const Icon(Icons.settings),\n        ),\n      ],\n      body: Padding(\n        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),\n        child: Column(\n          crossAxisAlignment: CrossAxisAlignment.stretch,\n          children: [\n            const Text(\n              'メニュー',\n              textAlign: TextAlign.center,\n              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),\n            ),\n            const SizedBox(height: 24),\n\n            AppButtons.primary(\n              label: '問題を解く',\n              icon: Icons.menu_book,\n              onPressed: () => _go(context, const QuestionScreen()),\n            ),\n            const SizedBox(height: 12),\n\n            AppButtons.success(\n              label: 'スコアを見る',\n              icon: Icons.bar_chart,\n              onPressed: () => _go(context, const ScoreScreen()),\n            ),\n            const SizedBox(height: 12),\n\n            AppButtons.neutral(\n              label: '解答履歴',\n              icon: Icons.history,\n              onPressed: () => _go(context, const AnswerHistoryScreen()),\n            ),\n            const SizedBox(height: 12),\n\n            AppButtons.neutral(\n              label: '設定',\n              icon: Icons.settings,\n              onPressed: () => _go(context, const SettingsScreen()),\n            ),\n          ],\n        ),\n      ),\n    );\n  }\n}"
     }
   ]
