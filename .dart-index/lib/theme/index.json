@@ -1,13 +1,13 @@
 {
   "folder": "lib/theme",
-  "generatedAt": "2025-10-21T18:00:07.928930ZZ",
+  "generatedAt": "2025-10-22T02:20:39.442982ZZ",
   "count": 1,
   "items": [
     {
       "path": "lib/theme/app_theme.dart",
       "file": "app_theme.dart",
       "size": 1590,
-      "modified": "2025-10-21T17:59:03.107Z",
+      "modified": "2025-10-22T02:20:17.045Z",
       "content": "import 'package:flutter/material.dart';\n\n/// アプリ共通テーマ（色/文字/余白/角丸）を一元管理\nclass AppTheme {\n  AppTheme._();\n\n  // 色トークン\n  static const Color bgScaffold = Color(0xFFF7F8FA);\n  static const Color borderNeutral = Color(0xFFE0E3E7);\n\n  // 選択肢色（薄緑/薄赤）\n  static const Color borderCorrect = Color(0xFFA7D7A9);\n  static const Color bgCorrect     = Color(0xFFEFF9F0);\n  static const Color borderWrong   = Color(0xFFF2B2B0);\n  static const Color bgWrong       = Color(0xFFFDEEEE);\n\n  // 角丸/余白\n  static const double rMd = 12;\n  static const EdgeInsets contentPad = EdgeInsets.fromLTRB(16, 16, 16, 24);\n\n  // テキストスタイル\n  static const String jpFont = 'NotoSansJP';\n\n  static ThemeData light() {\n    return ThemeData(\n      useMaterial3: false,\n      fontFamily: jpFont,\n      scaffoldBackgroundColor: bgScaffold,\n      appBarTheme: const AppBarTheme(\n        backgroundColor: bgScaffold,\n        foregroundColor: Colors.black87,\n        elevation: 0,\n      ),\n      textTheme: const TextTheme(\n        // 見出し（画面タイトルや「解説」など）\n        titleMedium: TextStyle(\n            fontSize: 18, fontWeight: FontWeight.w700, height: 1.25, color: Colors.black87),\n        // 本文（問題文/選択肢/解説の本文）\n        bodyLarge: TextStyle(\n            fontSize: 16, fontWeight: FontWeight.w400, height: 1.5, color: Colors.black87),\n        bodyMedium: TextStyle(\n            fontSize: 14, fontWeight: FontWeight.w400, height: 1.5, color: Colors.black87),\n      ),\n    );\n  }\n}"
     }
   ]
