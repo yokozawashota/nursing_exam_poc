@@ -11,14 +11,18 @@ class ShuffledChoices {
 /// 与えられた選択肢をシャッフルし、A,B,C,D,(E) で再ラベリングして返す。
 /// [rawChoices] は List でも Map でもOK
 /// [rawCorrect] は 'A' などのラベル もしくは index(int) も許容（Map の場合はラベル必須）。
-/// [maxChoices] で上限を指定（Phase1: 5 を許容。既定4の互換は維持）
+/// [maxChoices] で上限を指定（既定5。既存の4択想定とも互換）
+/// [rng] を渡すとテストで決定的にできます（未指定なら Random() ）。
 ///
 /// 戻り値：ShuffledChoices（choices: Map, correct: ラベル）
 ShuffledChoices shuffleWithRelabel(
     dynamic rawChoices,
     dynamic rawCorrect, {
-      int maxChoices = 5, // Phase1: 上限5（既存コードとの互換を壊さないようにResponseParser側から制御）
+      int maxChoices = 5,
+      Random? rng,
     }) {
+  final Random _rng = rng ?? Random();
+
   // まず配列化（順序をもつ一次リスト化）
   final List<String> list = _toList(rawChoices);
 
@@ -27,10 +31,10 @@ ShuffledChoices shuffleWithRelabel(
 
   // シャッフルに使うインデックス
   final idxs = List<int>.generate(n, (i) => i);
-  idxs.shuffle(Random());
+  idxs.shuffle(_rng);
 
   // 新しいラベル
-  const labels = ['A', 'B', 'C', 'D', 'E', 'F']; // 将来の拡張を見据えて冗長に
+  const labels = ['A', 'B', 'C', 'D', 'E', 'F']; // 将来拡張用に余裕あり
   final newMap = <String, String>{};
   for (var i = 0; i < n; i++) {
     newMap[labels[i]] = list[idxs[i]];
@@ -39,51 +43,59 @@ ShuffledChoices shuffleWithRelabel(
   // 正答の追随
   String? correctLabel;
 
+  // 1) 数値インデックス
   if (rawCorrect is int) {
     final origIndex = rawCorrect;
     if (origIndex >= 0 && origIndex < n) {
-      // シャッフル後に origIndex がどの newLabel に入ったかを逆引き
       final newPos = idxs.indexOf(origIndex);
       if (newPos >= 0) correctLabel = labels[newPos];
     }
-  } else if (rawCorrect is String) {
-    // 元がMapでラベル指定、またはListでもラベル文字を渡された場合
-    // 可能であれば、'A'.. を index に解釈して追随
-    final upper = rawCorrect.trim().toUpperCase();
-    final origIndex = _labelToIndex(upper);
+  }
+  // 2) 文字ラベル or テキスト
+  else if (rawCorrect is String) {
+    final normalized = rawCorrect.trim();
+
+    // 2-1) 'A'.. をインデックスに解釈できるか
+    final origIndex = _labelToIndex(normalized.toUpperCase());
     if (origIndex != null && origIndex < n) {
       final newPos = idxs.indexOf(origIndex);
       if (newPos >= 0) correctLabel = labels[newPos];
     } else {
-      // 文字列がそのまま本文の場合は、本文一致で追随
-      final origText = upper;
+      // 2-2) テキスト一致（大文字小文字・前後空白を無視）
+      final target = normalized.toLowerCase();
       for (var i = 0; i < n; i++) {
-        if (list[idxs[i]].toUpperCase() == origText) {
+        if (list[idxs[i]].trim().toLowerCase() == target) {
           correctLabel = labels[i];
           break;
         }
       }
     }
-  } else if (rawCorrect != null) {
-    // 正答が本文そのもの（厳密一致）だった場合
-    final correctText = rawCorrect.toString();
+  }
+  // 3) その他（オブジェクトなど）→ 文字列化して厳密一致
+  else if (rawCorrect != null) {
+    final target = rawCorrect.toString();
     for (var i = 0; i < n; i++) {
-      if (list[idxs[i]] == correctText) {
+      if (list[idxs[i]] == target) {
         correctLabel = labels[i];
         break;
       }
     }
   }
 
-  // フォールバック：見つからない場合はとりあえず 'A'
-  correctLabel ??= 'A';
+  // フォールバック：
+  // 何も決まらないときは、元の0番要素が入った位置のラベルを正答にする（以前の常に 'A' より自然）
+  correctLabel ??= labels[idxs.indexOf(0).clamp(0, n - 1)];
 
   return ShuffledChoices(choices: newMap, correct: correctLabel);
 }
 
 List<String> _toList(dynamic raw) {
   if (raw is List) {
-    return raw.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+    return raw
+        .map((e) => (e ?? '').toString())
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
   }
   if (raw is Map) {
     // ラベル順 A,B,C,D,E... に並べ替えて拾う
@@ -91,7 +103,10 @@ List<String> _toList(dynamic raw) {
         .map((e) => MapEntry(e.key.toString().toUpperCase(), e.value.toString()))
         .toList();
     entries.sort((a, b) => a.key.compareTo(b.key));
-    return entries.map((e) => e.value).where((s) => s.isNotEmpty).toList();
+    return entries
+        .map((e) => e.value.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
   }
   // 文字列単体などは空扱い
   return <String>[];
@@ -105,5 +120,3 @@ int? _labelToIndex(String s) {
   if (code < a || code > z) return null;
   return code - a;
 }
-// 例: 先頭に1行コメントを追加
-// noop: touch for git
