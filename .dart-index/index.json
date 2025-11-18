@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-10-22T05:04:39.005295ZZ",
+  "generatedAt": "2025-11-18T12:31:23.645148ZZ",
   "folders": [
     {
       "folder": "lib/_root",
@@ -23,7 +23,7 @@
       "folder": "lib/screens",
       "index": "lib/screens/index.json",
       "flatIndex": "lib/screens.index.json",
-      "count": 6
+      "count": 8
     },
     {
       "folder": "lib/services",
@@ -47,7 +47,7 @@
       "folder": "lib/widgets",
       "index": "lib/widgets/index.json",
       "flatIndex": "lib/widgets.index.json",
-      "count": 10
+      "count": 11
     }
   ]
 }
