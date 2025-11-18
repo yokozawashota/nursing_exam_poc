@@ -1,3 +1,4 @@
+// lib/services/version_service.dart
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// アプリのバージョンを提供するサービス。
@@ -15,9 +16,10 @@ class VersionService {
   }
 
   /// フッター表記に使う整形済み文字列を返す。
-  /// 例: "© 2025 NurAI　Ver 1.0.0"
+  /// 例: "© 2025 NurAI  Ver 1.0.0"
   static Future<String> footerText() async {
     final v = await getAppVersion();
-    return '© 2025 NurAI　Ver $v';
+    // 全角スペース混在を避け、半角2つで視認性を確保
+    return '© 2025 NurAI  Ver $v';
   }
 }

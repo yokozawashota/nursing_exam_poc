@@ -1,7 +1,7 @@
+// lib/widgets/base_scaffold.dart
 import 'package:flutter/material.dart';
-import '../services/version_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
-/// 全画面共通のヘッダー／フッター＆背景
 class BaseScaffold extends StatelessWidget {
   const BaseScaffold({
     super.key,
@@ -9,102 +9,72 @@ class BaseScaffold extends StatelessWidget {
     required this.body,
     this.actions,
     this.showBack = true,
-    this.footer,
+    this.showFooter = false, // ← デフォルトは表示しない
   });
 
   final String title;
   final Widget body;
   final List<Widget>? actions;
   final bool showBack;
-  final Widget? footer;
 
-  /// 色の一元管理（メニュー等と統一）
-  static const Color edgeBg = Color(0xFFF1EAF5);   // ヘッダー/フッター/外側
-  static const Color centerBg = Color(0xFFF7F2FA); // 中央
-  static const Color divider = Colors.black12;
+  /// © 2025 NurAI フッターを出すか（デフォルト false）
+  final bool showFooter;
 
   @override
   Widget build(BuildContext context) {
-    final canPop = Navigator.canPop(context);
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: edgeBg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ===== Header =====
-            Container(
-              decoration: const BoxDecoration(
-                color: edgeBg,
-                border: Border(
-                  bottom: BorderSide(color: divider, width: 0.5),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-              child: Row(
-                children: [
-                  if (showBack && canPop)
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () => Navigator.pop(context),
-                    )
-                  else
-                    const SizedBox(width: 48),
-                  Expanded(
-                    child: Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                  // 右側アクション（サイズ合わせ）
-                  SizedBox(
-                    width: 48,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: actions ?? const [],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      appBar: AppBar(
+        automaticallyImplyLeading: showBack,
+        title: Text(
+          title,
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        actions: actions,
+      ),
+      body: body,
+      bottomNavigationBar: showFooter ? const _CopyrightFooter() : null,
+    );
+  }
+}
 
-            // ===== Center =====
-            Expanded(
-              child: Container(
-                color: centerBg,
-                child: body,
-              ),
-            ),
+class _CopyrightFooter extends StatefulWidget {
+  const _CopyrightFooter();
 
-            // ===== Footer =====
-            Container(
-              decoration: const BoxDecoration(
-                color: edgeBg,
-                border: Border(
-                  top: BorderSide(color: divider, width: 0.5),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-              alignment: Alignment.center,
-              child: footer ??
-                  FutureBuilder<String>(
-                    future: VersionService.footerText(),
-                    builder: (context, snap) {
-                      final text = snap.hasData
-                          ? snap.data!
-                          : '© 2025 NurAI Ver —';
-                      return Text(
-                        text,
-                        style: const TextStyle(fontSize: 14, color: Colors.black54),
-                      );
-                    },
-                  ),
-            ),
-          ],
+  @override
+  State<_CopyrightFooter> createState() => _CopyrightFooterState();
+}
+
+class _CopyrightFooterState extends State<_CopyrightFooter> {
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      setState(() => _version = 'Ver ${info.version}');
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      top: false,
+      child: SizedBox(
+        height: 38,
+        child: Center(
+          child: Text(
+            '© 2025 NurAI  ${_version.isEmpty ? "" : _version}',
+            style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
         ),
       ),
     );

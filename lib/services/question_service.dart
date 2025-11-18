@@ -96,7 +96,8 @@ class QuestionService {
       if (mids.isNotEmpty) {
         resolvedMid = await TopicPicker.pickHisshuMidForMajor(majorNode.id, mids);
         final MidCategory? midNode = _findMidNode(majorNode, resolvedMid);
-        final topics = (midNode?.topics ?? const <Topic>[]).map((t) => t.label).toList();
+        final topics =
+        (midNode?.topics ?? const <Topic>[]).map((t) => t.label).toList();
         if (topics.isNotEmpty) {
           topic = await TopicPicker.pickTopic(
             domain: kHisshuCategory,
@@ -130,12 +131,13 @@ class QuestionService {
 
       if (resolvedMid != null && resolvedMid!.isNotEmpty) {
         final MidCategory? midNode = _findMidNode(majorNode, resolvedMid);
-        final topics = (midNode?.topics ?? const <Topic>[]).map((t) => t.label).toList();
+        final topics =
+        (midNode?.topics ?? const <Topic>[]).map((t) => t.label).toList();
         if (topics.isNotEmpty) {
           topic = await TopicPicker.pickTopic(
             domain: domain,
             major: majorNode.id,
-            mid: resolvedMid,
+            mid: resolvedMid!,
             topics: topics,
           );
         }
@@ -183,13 +185,17 @@ class QuestionService {
       throw StateError('OpenAIリクエスト失敗 (${res.statusCode}): ${res.body}');
     }
 
+    // ===== content の安全な抽出 =====
     final Map<String, dynamic> root =
     jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-    final String content =
-        (root['choices'] as List).first['message']['content']?.toString() ?? '';
+    final List choicesRoot = (root['choices'] as List? ?? const []);
+    final String content = choicesRoot.isNotEmpty
+        ? (choicesRoot.first['message']?['content']?.toString() ?? '')
+        : '';
 
     debugPrint('[log] [QS] raw content (head) = ${_firstLines(content)}');
 
+    // ===== パース & 最終整形 =====
     final out = ResponseParser.parseContentToQuestion(
       content,
       difficulty: difficulty,
@@ -206,12 +212,13 @@ class QuestionService {
         ((out['correctAnswers'] as List?)?.map((e) => e.toString()).toList()) ?? [];
 
     if (choices != null) {
+      // 1) 正答が choices に含まれない場合の安全弁
       final present = choices.keys.toSet();
       final filtered = correct.where(present.contains).toList();
-
       out['correctAnswers'] =
       filtered.isNotEmpty ? filtered : (choices.isNotEmpty ? [choices.keys.first] : []);
 
+      // 2) 問題文に「nつ選んでください」を付与（multiple/select_incorrect のとき）
       final isMulti = desiredKind == 'multiple' || desiredKind == 'select_incorrect';
       final q = (out['question'] as String? ?? '').trim();
       out['question'] = _ensureCountInstruction(
@@ -219,10 +226,22 @@ class QuestionService {
         isMulti: isMulti,
         requiredCorrectCount: requiredCorrectCount,
       );
+
+      // 3) ★ 正答位置を完全ランダム化（毎回シャッフル）
+      final remapped = _remapChoicesRandom(
+        originalChoices: (out['choices'] as Map).cast<String, String>(),
+        originalCorrectLabels: (out['correctAnswers'] as List).cast<String>(),
+      );
+
+      out['choices'] = remapped.choices;           // 新しいラベル順（A..E）
+      out['correctAnswers'] = remapped.corrects;   // 付け替え後の正答ラベル
     }
 
     debugPrint(
-      '[log] [QS] parsed => kind=${out['questionKind']}, choices=${(out['choices'] as Map?)?.keys.join(',') ?? ''} (len=${(out['choices'] as Map?)?.length ?? 0}), correct=${(out['correctAnswers'] as List?)?.join(',') ?? ''}',
+      '[log] [QS] parsed => kind=${out['questionKind']}, '
+          'choices=${(out['choices'] as Map?)?.keys.join(',') ?? ''} '
+          '(len=${(out['choices'] as Map?)?.length ?? 0}), '
+          'correct=${(out['correctAnswers'] as List?)?.join(',') ?? ''}',
     );
 
     return out;
@@ -245,7 +264,8 @@ class QuestionService {
       }) {
     if (!isMulti || requiredCorrectCount <= 1) return q;
 
-    final already = RegExp(r'[0-9一二三四五六七八九十]+\s*つ\s*選んでください').hasMatch(q);
+    final already =
+    RegExp(r'[0-9一二三四五六七八九十]+\s*つ\s*選んでください').hasMatch(q);
     if (already) return q;
 
     return '$q ${requiredCorrectCount}つ選んでください';
@@ -255,4 +275,50 @@ class QuestionService {
     final t = s.replaceAll('\n', ' ');
     return (t.length <= maxChars) ? t : t.substring(0, maxChars) + '...';
   }
+}
+
+// ===== 内部モデル（返却用）=====
+class _RemapResult {
+  final Map<String, String> choices;
+  final List<String> corrects;
+  _RemapResult(this.choices, this.corrects);
+}
+
+// ===== 正答位置を完全ランダム化 =====
+_RemapResult _remapChoicesRandom({
+  required Map<String, String> originalChoices,
+  required List<String> originalCorrectLabels,
+}) {
+  // 既存ラベルの並び（A..Eのうち存在するものだけ）
+  final labels = ['A', 'B', 'C', 'D', 'E'].where(originalChoices.containsKey).toList();
+  final n = labels.length;
+  if (n <= 1) {
+    return _RemapResult(
+      Map<String, String>.from(originalChoices),
+      List<String>.from(originalCorrectLabels),
+    );
+  }
+
+  final rng = Random(DateTime.now().microsecondsSinceEpoch);
+
+  // (label, text) のエントリ配列を作ってシャッフル
+  final entries = <MapEntry<String, String>>[
+    for (final k in labels) MapEntry(k, originalChoices[k]!)
+  ]..shuffle(rng);
+
+  // A.. に貼り直す＆正答ラベルも付け替え
+  final originalCorrectSet = originalCorrectLabels.toSet();
+
+  final newChoices = <String, String>{};
+  final newCorrects = <String>[];
+  for (var i = 0; i < entries.length; i++) {
+    final newLabel = String.fromCharCode('A'.codeUnitAt(0) + i);
+    final e = entries[i];
+    newChoices[newLabel] = e.value;
+    if (originalCorrectSet.contains(e.key)) {
+      newCorrects.add(newLabel);
+    }
+  }
+
+  return _RemapResult(newChoices, newCorrects);
 }

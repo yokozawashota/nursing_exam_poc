@@ -24,7 +24,7 @@ class MiniBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visible = items.take(maxItems).toList();
+    final visible = (maxItems <= 0) ? const <_BarItem>[] : items.take(maxItems).toList();
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -56,7 +56,9 @@ class _BarRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = (item.value.clamp(0.0, 1.0) * 100).toStringAsFixed(0);
+    final safe = item.value.isNaN ? 0.0 : item.value;
+    final clamped = safe.clamp(0.0, 1.0);
+    final pct = (clamped * 100).toStringAsFixed(0);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -84,7 +86,7 @@ class _BarRow extends StatelessWidget {
                     Container(color: const Color(0xFFF1EAF5)), // ベース
                     FractionallySizedBox(
                       alignment: Alignment.centerLeft,
-                      widthFactor: item.value.clamp(0.0, 1.0),
+                      widthFactor: clamped,
                       child: Container(color: const Color(0xFF5C6BC0)), // インディゴ
                     ),
                   ],
@@ -139,9 +141,7 @@ List<_BarItem> buildBarItemsFromStatMap(Map<String, dynamic> source) {
 
 /// DomainSummary（型）→ グラフ用アイテム
 List<_BarItem> buildBarItemsFromDomainSummaries(List<DomainSummary> summaries) {
-  final items = summaries
-      .map((s) => _BarItem(s.domain, s.accuracy))
-      .toList(growable: false);
+  final items = summaries.map((s) => _BarItem(s.domain, s.accuracy)).toList(growable: false);
   items.sort((a, b) => b.value.compareTo(a.value)); // 高い順
   return items;
 }

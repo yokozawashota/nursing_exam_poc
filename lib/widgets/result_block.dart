@@ -1,13 +1,12 @@
+// lib/widgets/result_block.dart
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'choice_tile.dart';
 import 'explanation_block.dart';
 
 /// 解答結果の表示ブロック
-/// - 問題文/解説は ExplanationBlock（枠・背景なし）で統一
-/// - 選択肢は ChoiceTile で統一（色味・丸囲いなし）
-/// - 「解答：A と D（2つ）」の行を解説の前に必ず表示
-/// - questionKind は任意（'select_incorrect' の時は文言に (誤っているもの) を付与）
+/// - 問題文/解説・根拠は ExplanationBlock で統一
+/// - 正答0件でもUIが崩れないようガード
 class ResultBlock extends StatelessWidget {
   const ResultBlock({
     super.key,
@@ -41,17 +40,54 @@ class ResultBlock extends StatelessWidget {
     final isIncorrect = (questionKind ?? '').contains('incorrect');
     final correctCount = cor.length;
 
+    // ===== 正答が0件でも落ちないようフォールバック表示 =====
+    if (correctCount == 0) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ExplanationBlock(title: '問題', body: question),
+          const SizedBox(height: 20),
+
+          Text('選択肢', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          ...orderedKeys.map((label) {
+            final text = choices[label] ?? '';
+            final userSelected = sel.contains(label);
+
+            final state = userSelected ? ChoiceTileState.incorrect : ChoiceTileState.normal;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ChoiceTile(
+                label: label,
+                text: text,
+                state: state,
+                dense: true,
+              ),
+            );
+          }),
+
+          const SizedBox(height: 20),
+          Text('解答：該当なし', style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+
+          const SizedBox(height: 8),
+          if (explanation.trim().isNotEmpty)
+            ExplanationBlock(title: '解説', body: explanation.trim()),
+        ],
+      );
+    }
+
+    // ===== 通常表示 =====
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ===== 問題 =====
+        // 問題
         ExplanationBlock(
           title: '問題',
           body: question,
         ),
         const SizedBox(height: 20),
 
-        // ===== 選択肢 =====
+        // 選択肢
         Text('選択肢', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         ...orderedKeys.map((label) {
@@ -81,12 +117,12 @@ class ResultBlock extends StatelessWidget {
 
         const SizedBox(height: 20),
 
-        // ===== 解答の一文（解説の前に）=====
+        // 解答の一文
         _answerLine(context, isIncorrect, correctCount, cor),
 
         const SizedBox(height: 8),
 
-        // ===== 解説 =====
+        // 解説
         if (explanation.trim().isNotEmpty) ...[
           ExplanationBlock(
             title: '解説',
@@ -95,7 +131,7 @@ class ResultBlock extends StatelessWidget {
           const SizedBox(height: 20),
         ],
 
-        // ===== 根拠 =====
+        // 根拠
         if (rationales != null && rationales!.isNotEmpty) ...[
           Text('根拠', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),

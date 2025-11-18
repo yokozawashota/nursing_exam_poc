@@ -13,8 +13,8 @@ class ScoreScreen extends StatefulWidget {
 }
 
 class _ScoreScreenState extends State<ScoreScreen> {
-  Future<List<AnswerRecord>>? _future;
-  String _filter = 'すべて';
+  late Future<List<AnswerRecord>> _future;
+  String _filter = 'すべて'; // 'すべて' / '直近1週間' / '直近1ヶ月'
 
   @override
   void initState() {
@@ -22,16 +22,26 @@ class _ScoreScreenState extends State<ScoreScreen> {
     _future = AnswerHistory.instance.all();
   }
 
+  Future<void> _reload() async {
+    setState(() {
+      _future = AnswerHistory.instance.all();
+    });
+    await _future;
+  }
+
   List<AnswerRecord> _applyFilter(List<AnswerRecord> items) {
     final now = DateTime.now();
-    if (_filter == '直近1週間') {
-      final from = now.subtract(const Duration(days: 7));
-      return items.where((r) => r.ts.isAfter(from)).toList();
-    } else if (_filter == '直近1ヶ月') {
-      final from = DateTime(now.year, now.month - 1, now.day);
-      return items.where((r) => r.ts.isAfter(from)).toList();
+    switch (_filter) {
+      case '直近1週間':
+        final from7 = now.subtract(const Duration(days: 7));
+        return items.where((r) => r.ts.isAfter(from7)).toList();
+      case '直近1ヶ月':
+      // 月減算のバグを避けるため、30日固定で扱う
+        final from30 = now.subtract(const Duration(days: 30));
+        return items.where((r) => r.ts.isAfter(from30)).toList();
+      default:
+        return items; // すべて
     }
-    return items; // すべて
   }
 
   @override
@@ -41,25 +51,37 @@ class _ScoreScreenState extends State<ScoreScreen> {
       body: FutureBuilder<List<AnswerRecord>>(
         future: _future,
         builder: (context, snap) {
-          if (!snap.hasData) {
+          if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          final allItems = snap.data!;
+          if (snap.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('読み込みに失敗しました: ${snap.error}'),
+              ),
+            );
+          }
+
+          final allItems = snap.data ?? const <AnswerRecord>[];
           final items = _applyFilter(allItems);
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            children: [
-              _buildFilterDropdown(),
-              const SizedBox(height: 12),
-              if (items.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40),
-                  child: Center(child: Text('該当する解答履歴がありません')),
-                )
-              else
-                _buildContent(items),
-            ],
+          return RefreshIndicator(
+            onRefresh: _reload,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
+                _buildFilterDropdown(),
+                const SizedBox(height: 12),
+                if (items.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 40),
+                    child: Center(child: Text('該当する解答履歴がありません')),
+                  )
+                else
+                  _buildContent(items),
+              ],
+            ),
           );
         },
       ),
@@ -91,7 +113,8 @@ class _ScoreScreenState extends State<ScoreScreen> {
       byDomain.putIfAbsent(dom, () => {'total': 0, 'correct': 0});
       byDomain[dom]!['total'] = (byDomain[dom]!['total'] ?? 0) + 1;
       if (r.isCorrect) {
-        byDomain[dom]!['correct'] = (byDomain[dom]!['correct'] ?? 0) + 1;
+        byDomain[dom]!['correct'] =
+            (byDomain[dom]!['correct'] ?? 0) + 1;
       }
     }
 
