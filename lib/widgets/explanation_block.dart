@@ -1,3 +1,4 @@
+// lib/widgets/explanation_block.dart
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
@@ -17,14 +18,32 @@ class ExplanationBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // AppTheme.contentPad の代わりに統一パディングを使用
+    const EdgeInsets contentPadding = EdgeInsets.symmetric(
+      horizontal: 20,
+      vertical: 12,
+    );
+
     return Padding(
-      padding: AppTheme.contentPad.copyWith(top: 0, bottom: 0),
+      padding: contentPadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: theme.textTheme.titleMedium),
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(body, style: theme.textTheme.bodyLarge),
+          Text(
+            body,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
         ],
       ),
     );

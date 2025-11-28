@@ -1,46 +1,154 @@
+// lib/theme/app_theme.dart
 import 'package:flutter/material.dart';
 
-/// アプリ共通テーマ（色/文字/余白/角丸）を一元管理
-class AppTheme {
-  AppTheme._();
+/// ------------------------------------------------------------
+/// NurAI 全体テーマ（カラー / 角丸 / 影 / テキスト）
+/// ------------------------------------------------------------
 
-  // 色トークン
-  static const Color bgScaffold = Color(0xFFF7F8FA);
-  static const Color borderNeutral = Color(0xFFE0E3E7);
+class AppColors {
+  // メインブランドカラー（NurAIイメージのバイオレット系）
+  static const primary = Color(0xFF7C63FF);        // メイン紫
+  static const primaryDark = Color(0xFF5A46CC);    // 濃い紫
+  static const primaryLight = Color(0xFFD5CCFF);   // 薄い紫
 
-  // 選択肢色（薄緑/薄赤）
-  static const Color borderCorrect = Color(0xFFA7D7A9);
-  static const Color bgCorrect     = Color(0xFFEFF9F0);
-  static const Color borderWrong   = Color(0xFFF2B2B0);
-  static const Color bgWrong       = Color(0xFFFDEEEE);
+  // サーフェス
+  static const surface = Colors.white;
+  static const background = Color(0xFFF6F7FB);     // アプリ共通背景
 
-  // 角丸/余白
-  static const double rMd = 12;
-  static const EdgeInsets contentPad = EdgeInsets.fromLTRB(16, 16, 16, 24);
+  // テキスト
+  static const textPrimary = Color(0xFF2E2E3A);
+  static const textSecondary = Color(0xFF6B6B7A);
 
-  // テキストスタイル
-  static const String jpFont = 'NotoSansJP';
+  // ナビゲーションバー
+  static const navBarBackground = Colors.white;
+  static const navBarIcon = Color(0xFF7A7A8A);
 
-  static ThemeData light() {
-    return ThemeData(
-      useMaterial3: false,
-      fontFamily: jpFont,
-      scaffoldBackgroundColor: bgScaffold,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: bgScaffold,
-        foregroundColor: Colors.black87,
-        elevation: 0,
+  // 正解 / 不正解（スコア・Result用）
+  static const correct = Color(0xFF26C281);
+  static const wrong = Color(0xFFE74C3C);
+}
+
+/// ------------------------------------------------------------
+/// Typography
+/// ------------------------------------------------------------
+class AppText {
+  static const headline1 = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+  );
+
+  static const headline2 = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+  );
+
+  static const body = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    color: AppColors.textPrimary,
+  );
+
+  static const label = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    color: AppColors.textSecondary,
+  );
+}
+
+/// ------------------------------------------------------------
+/// ボタンStyle
+/// ------------------------------------------------------------
+class AppStyles {
+  static ButtonStyle ctaButton(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return ElevatedButton.styleFrom(
+      backgroundColor: cs.primary,
+      foregroundColor: cs.onPrimary,
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
       ),
-      textTheme: const TextTheme(
-        // 見出し（画面タイトルや「解説」など）
-        titleMedium: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w700, height: 1.25, color: Colors.black87),
-        // 本文（問題文/選択肢/解説の本文）
-        bodyLarge: TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w400, height: 1.5, color: Colors.black87),
-        bodyMedium: TextStyle(
-            fontSize: 14, fontWeight: FontWeight.w400, height: 1.5, color: Colors.black87),
+      minimumSize: const Size(double.infinity, 56),
+      textStyle: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
       ),
     );
   }
+
+  static ButtonStyle outlinedButton = OutlinedButton.styleFrom(
+    foregroundColor: AppColors.primary,
+    side: const BorderSide(color: AppColors.primary, width: 1.2),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+  );
+}
+
+/// ------------------------------------------------------------
+/// Main ThemeData
+/// ------------------------------------------------------------
+ThemeData buildAppTheme() {
+  return ThemeData(
+    useMaterial3: true,
+
+    /// カラースキーム
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      primary: AppColors.primary,
+      onPrimary: Colors.white,
+      surface: AppColors.surface,
+      onSurface: AppColors.textPrimary,
+      background: AppColors.background,
+    ),
+
+    scaffoldBackgroundColor: AppColors.background,
+
+    /// AppBar
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: true,
+      foregroundColor: AppColors.textPrimary,
+      titleTextStyle: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+      ),
+    ),
+
+    /// BottomNavigationBar（下部タブ）
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: AppColors.navBarBackground,
+      selectedItemColor: AppColors.primary,
+      unselectedItemColor: AppColors.navBarIcon,
+      showSelectedLabels: true,
+      showUnselectedLabels: true,
+      elevation: 8,
+    ),
+
+    /// FAB（ホームの丸ボタン）
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      elevation: 3,
+      shape: CircleBorder(),
+    ),
+
+    /// SnackBar（下から出る通知バー）
+    /// → floating にすることでレイアウトを押し上げず、FABも動かなくなる
+    snackBarTheme: const SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: Colors.black87,
+      contentTextStyle: TextStyle(color: Colors.white),
+    ),
+
+    textSelectionTheme: const TextSelectionThemeData(
+      cursorColor: AppColors.primary,
+      selectionColor: AppColors.primaryLight,
+    ),
+  );
 }

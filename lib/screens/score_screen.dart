@@ -12,14 +12,40 @@ class ScoreScreen extends StatefulWidget {
   State<ScoreScreen> createState() => _ScoreScreenState();
 }
 
-class _ScoreScreenState extends State<ScoreScreen> {
+class _ScoreScreenState extends State<ScoreScreen>
+    with SingleTickerProviderStateMixin {
   late Future<List<AnswerRecord>> _future;
   String _filter = 'すべて'; // 'すべて' / '直近1週間' / '直近1ヶ月'
+
+  late final AnimationController _animController;
+  late final Animation<Offset> _slideAnim;
 
   @override
   void initState() {
     super.initState();
     _future = AnswerHistory.instance.all();
+
+    // カード表示用のフェード＋スライドアニメーション
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   Future<void> _reload() async {
@@ -72,7 +98,7 @@ class _ScoreScreenState extends State<ScoreScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
                 _buildFilterDropdown(),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 if (items.isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(top: 40),
@@ -89,6 +115,8 @@ class _ScoreScreenState extends State<ScoreScreen> {
   }
 
   Widget _buildContent(List<AnswerRecord> items) {
+    final theme = Theme.of(context);
+
     // ===== 集計 =====
     final total = items.length;
     final correct = items.where((r) => r.isCorrect).length;
@@ -140,13 +168,14 @@ class _ScoreScreenState extends State<ScoreScreen> {
         ..sort(),
     ];
 
-    // ===== 上段：総合成績 と 出題形式別（横並び／狭ければ縦） =====
-    final totalStat = _StatBlock(
+    // ===== 上段：総合成績 と 出題形式別（カード化 + アニメーション） =====
+
+    final totalStat = _StatCard(
       title: '総合成績',
       lines: [
-        '解答数: $total',
-        '正解数: $correct',
-        '正答率: ${(rate * 100).toStringAsFixed(1)}%',
+        '解答数：$total',
+        '正解数：$correct',
+        '正答率：${(rate * 100).toStringAsFixed(1)}%',
       ],
     );
 
@@ -154,22 +183,22 @@ class _ScoreScreenState extends State<ScoreScreen> {
       final t = e.value['total'] ?? 0;
       final c = e.value['correct'] ?? 0;
       final r = t == 0 ? 0.0 : c / t;
-      return '${e.key} : $c / $t （${(r * 100).toStringAsFixed(1)}%）';
+      return '${e.key}：$c / $t（${(r * 100).toStringAsFixed(1)}%）';
     }).toList();
 
-    final diffStat = _StatBlock(title: '出題形式別', lines: diffLines);
+    final diffStat = _StatCard(title: '出題形式別', lines: diffLines);
 
     final topRow = LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 420;
         if (isNarrow) {
-          // 縦：Expandedは使わない（ParentDataの混在を避ける）
+          // スマホ幅ではカードを横いっぱいに広げる
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              totalStat,
-              const SizedBox(height: 16),
-              diffStat,
+              SizedBox(width: double.infinity, child: totalStat),
+              const SizedBox(height: 12),
+              SizedBox(width: double.infinity, child: diffStat),
             ],
           );
         } else {
@@ -186,29 +215,61 @@ class _ScoreScreenState extends State<ScoreScreen> {
       },
     );
 
+    // ===== 成績推移グラフ（棒グラフ） =====
+    final trendCard = _buildTrendCard(items);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        topRow,
+        // 上部カードをフェード＋スライド表示
+        FadeTransition(
+          opacity: _animController,
+          child: SlideTransition(
+            position: _slideAnim,
+            child: topRow,
+          ),
+        ),
 
-        const Divider(height: 32),
+        const SizedBox(height: 16),
 
-        // ===== 分野別（折りたたみ・枠なし） =====
-        _expansion(
-          title: '分野別成績',
+        if (trendCard != null) ...[
+          FadeTransition(
+            opacity: _animController,
+            child: SlideTransition(
+              position: _slideAnim,
+              child: trendCard,
+            ),
+          ),
+          const SizedBox(height: 24),
+        ] else
+          const SizedBox(height: 24),
+
+        // ===== 分野別成績（カード + 折りたたみ） =====
+        Text(
+          '分野別成績',
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        _expansionCard(
+          title: '正答率（分野別）',
           child: MiniBarChart(
-            title: '正答率（分野別）',
+            title: null, // タイトルは上のテキストで表示
             items: buildBarItemsFromStatMap(byDomain),
             barHeight: 20,
             maxItems: 10,
           ),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
 
-        // ===== 出題形式 × 分野（折りたたみ・枠なし） =====
-        _expansion(
-          title: '出題形式 × 分野',
+        // ===== 出題形式 × 分野（カード + 折りたたみ） =====
+        Text(
+          '出題形式 × 分野',
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        _expansionCard(
+          title: '出題形式ごとの分野別正答率',
           child: Column(
             children: diffKeys.map((diff) {
               final domainStats =
@@ -218,7 +279,7 @@ class _ScoreScreenState extends State<ScoreScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('$diff : データなし'),
+                    child: Text('$diff：データなし'),
                   ),
                 );
               }
@@ -235,6 +296,114 @@ class _ScoreScreenState extends State<ScoreScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// 日毎の正答率推移カード（直近10日分）
+  Widget? _buildTrendCard(List<AnswerRecord> items) {
+    if (items.isEmpty) return null;
+
+    // 日付ごとに集計
+    final buckets = <DateTime, _TrendBucket>{};
+    for (final r in items) {
+      final day = DateTime(r.ts.year, r.ts.month, r.ts.day);
+      final bucket = buckets.putIfAbsent(day, () => _TrendBucket());
+      bucket.total++;
+      if (r.isCorrect) bucket.correct++;
+    }
+
+    var keys = buckets.keys.toList()..sort();
+    const maxDays = 10;
+    if (keys.length > maxDays) {
+      keys = keys.sublist(keys.length - maxDays);
+    }
+
+    final points = <_TrendPoint>[];
+    for (final d in keys) {
+      final b = buckets[d]!;
+      final acc = b.total == 0 ? 0.0 : b.correct / b.total;
+      final label = '${d.month}/${d.day}';
+      points.add(_TrendPoint(label: label, accuracy: acc));
+    }
+
+    if (points.isEmpty) return null;
+
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '正答率の推移（直近${points.length}日）',
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 120,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: points.map((p) {
+                final value = p.accuracy.clamp(0.0, 1.0);
+                final heightFactor = value == 0 ? 0.05 : value; // 0%でも少し表示
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: FractionallySizedBox(
+                              heightFactor: heightFactor,
+                              alignment: Alignment.bottomCenter,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: cs.primary.withOpacity(0.85),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          p.label,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 10,
+                          ),
+                        ),
+                        Text(
+                          '${(p.accuracy * 100).toStringAsFixed(0)}%',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -258,46 +427,98 @@ class _ScoreScreenState extends State<ScoreScreen> {
     );
   }
 
-  /// 枠なしの ExpansionTile（デフォルト閉）
-  Widget _expansion({required String title, required Widget child}) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        dividerColor: Colors.transparent,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-      ),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: EdgeInsets.zero,
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        initiallyExpanded: false,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: child,
+  /// カード風 ExpansionTile
+  Widget _expansionCard({required String title, required Widget child}) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
           ),
+        ],
+      ),
+      child: Theme(
+        data: theme.copyWith(
+          dividerColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          initiallyExpanded: false,
+          children: [
+            const SizedBox(height: 8),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 上部のテキスト統計カード
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.title,
+    required this.lines,
+  });
+
+  final String title;
+  final List<String> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          ...lines.map((l) => Text(l)).toList(),
         ],
       ),
     );
   }
 }
 
-/// シンプルなテキスト統計ブロック（枠なし）
-class _StatBlock extends StatelessWidget {
-  const _StatBlock({required this.title, required this.lines});
-  final String title;
-  final List<String> lines;
+/// 日毎の正答率（内部用）
+class _TrendBucket {
+  int total = 0;
+  int correct = 0;
+}
 
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: textTheme.titleLarge),
-        const SizedBox(height: 8),
-        ...lines.map((l) => Text(l)).toList(),
-      ],
-    );
-  }
+class _TrendPoint {
+  final String label;
+  final double accuracy;
+
+  _TrendPoint({required this.label, required this.accuracy});
 }

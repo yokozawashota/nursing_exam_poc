@@ -67,6 +67,7 @@ flutter:
 
   assets:
     - assets/fonts/
+    - assets/notices.json
 
   fonts:
     - family: NotoSansJP

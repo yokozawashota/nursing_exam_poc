@@ -1,5 +1,6 @@
 // lib/models/answer_history.dart
 import 'dart:convert';
+import 'package:flutter/foundation.dart';              // ★ 追加：ValueNotifier 用
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 解答履歴 1件分（スナップショット保存型）
@@ -45,13 +46,10 @@ class AnswerRecord {
 
     switch (questionKind) {
       case 'multiple':
-      // 複数正答 → 完全一致
         return ua.length == ca.length && ua.containsAll(ca);
       case 'select_incorrect':
-      // 誤答選択 → 誤り（=正解集合）から1つでも選べていれば正解
         return ua.intersection(ca).isNotEmpty;
       default:
-      // single（その他）→ 完全一致
         return ua.length == ca.length && ua.containsAll(ca);
     }
   }
@@ -208,7 +206,6 @@ class AnswerRecord {
     'correctAnswers': correctAnswers,
   };
 
-  /// 便利: 一部差し替え
   AnswerRecord copyWith({
     String? id,
     DateTime? ts,
@@ -257,6 +254,11 @@ class AnswerHistory {
   static const _storageKey = 'answer_history_v3';
   static const _maxKeep = 500;
 
+  /// 🔔 履歴が変わるたびにインクリメントされる「バージョン」
+  /// これを監視することで、UI側が自動で再読み込みできる
+  final ValueNotifier<int> _version = ValueNotifier<int>(0);
+  ValueListenable<int> get versionListenable => _version;
+
   Future<List<AnswerRecord>> all() async {
     final sp = await SharedPreferences.getInstance();
     final raw = sp.getStringList(_storageKey) ?? const <String>[];
@@ -285,10 +287,16 @@ class AnswerHistory {
       list.removeRange(_maxKeep, list.length);
     }
     await sp.setStringList(_storageKey, list);
+
+    // 🔔 UIに「変わったよ」と知らせる
+    _version.value++;
   }
 
   Future<void> clear() async {
     final sp = await SharedPreferences.getInstance();
     await sp.remove(_storageKey);
+
+    // 🔔 クリアしたことも通知
+    _version.value++;
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 // ★ 追加：型モデル＆集計ロジック（新ロジックに対応）
 import '../models/history_models.dart';
 import '../services/history_stats.dart';
+import '../theme/app_theme.dart';
 
 /// シンプルな横棒グラフ（依存0）
 /// items: [{label: '一般問題', value: 0.62}, ...] の value は 0.0〜1.0
@@ -24,12 +25,19 @@ class MiniBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visible = (maxItems <= 0) ? const <_BarItem>[] : items.take(maxItems).toList();
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    final visible =
+    (maxItems <= 0) ? const <_BarItem>[] : items.take(maxItems).toList();
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surface, // ← テーマのサーフェス色（カード背景）
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black12),
+        border: Border.all(
+          color: AppColors.textSecondary.withOpacity(0.12),
+        ),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -38,11 +46,16 @@ class MiniBarChart extends StatelessWidget {
           if (title != null) ...[
             Text(
               title!,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
             ),
             const SizedBox(height: 8),
           ],
-          ...visible.map((e) => _BarRow(item: e, barHeight: barHeight)).toList(),
+          ...visible
+              .map((e) => _BarRow(item: e, barHeight: barHeight))
+              .toList(),
         ],
       ),
     );
@@ -56,9 +69,13 @@ class _BarRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     final safe = item.value.isNaN ? 0.0 : item.value;
     final clamped = safe.clamp(0.0, 1.0);
     final pct = (clamped * 100).toStringAsFixed(0);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -70,7 +87,9 @@ class _BarRow extends StatelessWidget {
               item.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.black87),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -83,11 +102,17 @@ class _BarRow extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Container(color: const Color(0xFFF1EAF5)), // ベース
+                    // ベースバー（薄い紫）
+                    Container(
+                      color: AppColors.primaryLight.withOpacity(0.6),
+                    ),
+                    // 実際の値バー（ブランドカラー）
                     FractionallySizedBox(
                       alignment: Alignment.centerLeft,
                       widthFactor: clamped,
-                      child: Container(color: const Color(0xFF5C6BC0)), // インディゴ
+                      child: Container(
+                        color: cs.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -101,9 +126,10 @@ class _BarRow extends StatelessWidget {
             child: Text(
               '$pct%',
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontFeatures: [FontFeature.tabularFigures()],
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
                 fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -140,8 +166,12 @@ List<_BarItem> buildBarItemsFromStatMap(Map<String, dynamic> source) {
 /// ========= 新ロジック対応（型安全） =========
 
 /// DomainSummary（型）→ グラフ用アイテム
-List<_BarItem> buildBarItemsFromDomainSummaries(List<DomainSummary> summaries) {
-  final items = summaries.map((s) => _BarItem(s.domain, s.accuracy)).toList(growable: false);
+List<_BarItem> buildBarItemsFromDomainSummaries(
+    List<DomainSummary> summaries,
+    ) {
+  final items = summaries
+      .map((s) => _BarItem(s.domain, s.accuracy))
+      .toList(growable: false);
   items.sort((a, b) => b.value.compareTo(a.value)); // 高い順
   return items;
 }

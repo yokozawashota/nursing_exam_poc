@@ -1,6 +1,7 @@
 // lib/widgets/base_scaffold.dart
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../theme/app_theme.dart';
 
 class BaseScaffold extends StatelessWidget {
   const BaseScaffold({
@@ -9,36 +10,48 @@ class BaseScaffold extends StatelessWidget {
     required this.body,
     this.actions,
     this.showBack = true,
-    this.showFooter = false, // ← デフォルトは表示しない
+    this.showFooter = false, // デフォルト非表示
   });
 
   final String title;
   final Widget body;
   final List<Widget>? actions;
   final bool showBack;
-
-  /// © 2025 NurAI フッターを出すか（デフォルト false）
   final bool showFooter;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     return Scaffold(
+      backgroundColor: cs.background, // ← 画面背景をテーマに統一
+
       appBar: AppBar(
         automaticallyImplyLeading: showBack,
+
+        // AppBar のタイトルスタイルを Theme に完全準拠
         title: Text(
           title,
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: cs.onSurface,
+          ),
         ),
+
+        // actions はそのまま
         actions: actions,
       ),
+
       body: body,
-      bottomNavigationBar: showFooter ? const _CopyrightFooter() : null,
+
+      bottomNavigationBar:
+      showFooter ? const _CopyrightFooter() : null,
     );
   }
 }
 
+/// © 2025 NurAI フッター（テーマ準拠）
 class _CopyrightFooter extends StatefulWidget {
   const _CopyrightFooter();
 
@@ -65,14 +78,19 @@ class _CopyrightFooterState extends State<_CopyrightFooter> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return SafeArea(
       top: false,
-      child: SizedBox(
+      child: Container(
         height: 38,
+        color: cs.background, // ← フッター背景も統一
         child: Center(
           child: Text(
             '© 2025 NurAI  ${_version.isEmpty ? "" : _version}',
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary.withOpacity(0.75),
+            ),
             textAlign: TextAlign.center,
           ),
         ),

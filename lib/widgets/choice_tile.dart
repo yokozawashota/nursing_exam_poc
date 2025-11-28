@@ -1,3 +1,4 @@
+// lib/widgets/choice_tile.dart
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
@@ -27,17 +28,20 @@ class ChoiceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
-    // トークン適用
+    // ベース背景は Scaffold と同じ
     final Color bgScaffold = theme.scaffoldBackgroundColor;
-    final Color borderNormal = AppTheme.borderNeutral;
-    final Color bgNormal     = bgScaffold;
 
-    final Color borderCorrect = AppTheme.borderCorrect;
-    final Color bgCorrect     = AppTheme.bgCorrect;
+    // テーマベースのカラー定義（AppColors を利用）
+    final Color borderNormal = AppColors.textSecondary.withOpacity(0.25);
+    final Color bgNormal = bgScaffold;
 
-    final Color borderIncorrect = AppTheme.borderWrong;
-    final Color bgIncorrect     = AppTheme.bgWrong;
+    final Color borderCorrect = AppColors.correct;
+    final Color bgCorrect = AppColors.correct.withOpacity(0.12);
+
+    final Color borderIncorrect = AppColors.wrong;
+    final Color bgIncorrect = AppColors.wrong.withOpacity(0.12);
 
     Color borderColor;
     Color bgColor;
@@ -57,7 +61,8 @@ class ChoiceTile extends StatelessWidget {
         break;
     }
 
-    final radius = BorderRadius.circular(AppTheme.rMd);
+    // 角丸は共通トークン的に 12 に統一（必要なら AppStyles に移してもOK）
+    final radius = BorderRadius.circular(12);
 
     return Material(
       color: Colors.transparent,
@@ -65,7 +70,10 @@ class ChoiceTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: radius,
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: dense ? 10 : 14),
+          padding: EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: dense ? 10 : 14,
+          ),
           decoration: BoxDecoration(
             color: bgColor,
             border: Border.all(color: borderColor),
@@ -76,13 +84,18 @@ class ChoiceTile extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   text,
-                  style: theme.textTheme.bodyLarge,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: cs.onSurface,
+                  ),
                 ),
               ),
               if (trailing != null) ...[
