@@ -1,5 +1,10 @@
+// lib/widgets/question_controls.dart
 import 'package:flutter/material.dart';
 import 'app_buttons.dart';
+
+/// ランダム指定用の内部 ID（QuestionScreen 側と同じ文字列にする）
+const String kRandomDomainId = '__RANDOM_DOMAIN__';
+const String kRandomMajorId = '__RANDOM_MAJOR__';
 
 /// 出題コントロール一式（表示専用コンポーネント）
 /// - 画面の見た目と導線は question_screen.dart と同一になるよう再現
@@ -85,7 +90,9 @@ class QuestionControls extends StatelessWidget {
 
     // ▼ ドロップダウン表示を「太字ではなく通常」に統一
     final TextStyle? ddStyle =
-    Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w400);
+    Theme.of(context).textTheme.bodyLarge?.copyWith(
+      fontWeight: FontWeight.w400,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,7 +108,8 @@ class QuestionControls extends StatelessWidget {
               items: const [
                 DropdownMenuItem(value: modeHisshu, child: Text(modeHisshu)),
                 DropdownMenuItem(value: modeGeneral, child: Text(modeGeneral)),
-                DropdownMenuItem(value: modeSituational, child: Text(modeSituational)),
+                DropdownMenuItem(
+                    value: modeSituational, child: Text(modeSituational)),
               ],
               onChanged: (val) {
                 if (val == null) return;
@@ -113,19 +121,26 @@ class QuestionControls extends StatelessWidget {
         const SizedBox(height: 12),
 
         if (isGeneral) ...[
-          // 分野
+          // 分野（先頭に「分野ランダム」を追加）
           _LabeledBox(
             label: '分野',
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                value: domainItems.contains(selectedDomain)
-                    ? selectedDomain
-                    : (domainItems.isNotEmpty ? domainItems.first : null),
+                value: _effectiveDomainValue(),
                 isExpanded: true,
                 style: ddStyle,
-                items: domainItems
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e, style: ddStyle)))
-                    .toList(),
+                items: [
+                  DropdownMenuItem(
+                    value: kRandomDomainId,
+                    child: Text('（分野ランダム）', style: ddStyle),
+                  ),
+                  ...domainItems.map(
+                        (e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(e, style: ddStyle),
+                    ),
+                  ),
+                ],
                 onChanged: (val) {
                   if (val == null) return;
                   onDomainChanged(val);
@@ -135,17 +150,26 @@ class QuestionControls extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // 大項目
+          // 大項目（先頭に「大項目ランダム」を追加）
           _LabeledBox(
             label: '大項目',
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                value: selectedMajor.isNotEmpty ? selectedMajor : null,
+                value: _effectiveMajorValue(),
                 isExpanded: true,
                 style: ddStyle,
-                items: majorItems
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e, style: ddStyle)))
-                    .toList(),
+                items: [
+                  DropdownMenuItem(
+                    value: kRandomMajorId,
+                    child: Text('（大項目ランダム）', style: ddStyle),
+                  ),
+                  ...majorItems.map(
+                        (e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(e, style: ddStyle),
+                    ),
+                  ),
+                ],
                 onChanged: (val) {
                   if (val == null) return;
                   onMajorChanged(val);
@@ -208,7 +232,8 @@ class QuestionControls extends StatelessWidget {
                   isExpanded: true,
                   style: ddStyle,
                   items: midItems
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e, style: ddStyle)))
+                      .map((e) =>
+                      DropdownMenuItem(value: e, child: Text(e, style: ddStyle)))
                       .toList(),
                   onChanged: onMidChanged,
                 ),
@@ -216,20 +241,30 @@ class QuestionControls extends StatelessWidget {
             ),
           ],
         ] else ...[
-          // 必修
+          // 必修：大項目（先頭に「大項目ランダム」を追加）
           _LabeledBox(
             label: '大項目（必修）',
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                value: hisshuMajorItems.contains(selectedHisshuMajor)
-                    ? selectedHisshuMajor
-                    : (hisshuMajorItems.isNotEmpty ? hisshuMajorItems.first : null),
+                value: _effectiveHisshuMajorValue(),
                 isExpanded: true,
                 style: ddStyle,
-                items: hisshuMajorItems
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e, style: ddStyle)))
-                    .toList(),
-                onChanged: (val) => onHisshuMajorChanged(val ?? ''),
+                items: [
+                  DropdownMenuItem(
+                    value: kRandomMajorId,
+                    child: Text('（大項目ランダム）', style: ddStyle),
+                  ),
+                  ...hisshuMajorItems.map(
+                        (e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(e, style: ddStyle),
+                    ),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val == null) return;
+                  onHisshuMajorChanged(val);
+                },
               ),
             ),
           ),
@@ -245,6 +280,39 @@ class QuestionControls extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// ドメイン（分野）の value を正規化
+  String _effectiveDomainValue() {
+    if (selectedDomain == kRandomDomainId) {
+      return kRandomDomainId;
+    }
+    if (!domainItems.contains(selectedDomain)) {
+      return kRandomDomainId;
+    }
+    return selectedDomain;
+  }
+
+  /// 大項目（一般/状況設定）の value を正規化
+  String _effectiveMajorValue() {
+    if (selectedMajor == kRandomMajorId) {
+      return kRandomMajorId;
+    }
+    if (!majorItems.contains(selectedMajor)) {
+      return kRandomMajorId;
+    }
+    return selectedMajor;
+  }
+
+  /// 必修の大項目 value を正規化
+  String _effectiveHisshuMajorValue() {
+    if (selectedHisshuMajor == kRandomMajorId) {
+      return kRandomMajorId;
+    }
+    if (!hisshuMajorItems.contains(selectedHisshuMajor)) {
+      return kRandomMajorId;
+    }
+    return selectedHisshuMajor;
   }
 }
 
@@ -264,8 +332,8 @@ class _LabeledBox extends StatelessWidget {
         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ).copyWith(
         labelText: label,
-        // ラベル側も通常ウェイトに
-        labelStyle: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+        labelStyle:
+        theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
       ),
       child: child,
     );

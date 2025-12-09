@@ -35,23 +35,27 @@ class AnswerRecord {
   String  get correct    => correctAnswers.isNotEmpty ? correctAnswers.first : '';
 
   /// 正誤判定
-  /// - multiple: 完全一致（順不同）
-  /// - select_incorrect: 正解集合（=誤り集合）とユーザー選択が1つでも重なれば正解
-  /// - single: 完全一致
+  ///
+  /// ✅ 仕様（どの questionKind でも共通）:
+  ///   - ユーザーの選択集合 == 正答集合 のときだけ「正解」
+  ///   - つまり
+  ///       * 1つでも足りない
+  ///       * 1つでも余計に選んでいる
+  ///       * 1つも合っていない
+  ///     → すべて不正解
+  ///
+  ///   - multiple のとき:
+  ///       正解が A,C → ユーザーが A,C を両方選んだときだけ正解
+  ///   - select_incorrect のとき:
+  ///       「誤っている選択肢ラベルの集合」と完全一致したときだけ正解
   bool get isCorrect {
     final ua = userAnswers.toSet();
     final ca = correctAnswers.toSet();
 
     if (ua.isEmpty || ca.isEmpty) return false;
 
-    switch (questionKind) {
-      case 'multiple':
-        return ua.length == ca.length && ua.containsAll(ca);
-      case 'select_incorrect':
-        return ua.intersection(ca).isNotEmpty;
-      default:
-        return ua.length == ca.length && ua.containsAll(ca);
-    }
+    // ★ 完全一致（順不同）でのみ正解とする
+    return ua.length == ca.length && ua.containsAll(ca);
   }
 
   const AnswerRecord({

@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
 import '../widgets/base_scaffold.dart';
 import '../widgets/app_buttons.dart';
-import '../ai_analysis/ai_analysis_models.dart';
-import '../ai_analysis/ai_analysis_prefs.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -23,9 +21,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _fiveChoiceProb = 0;
   int _incorrectProb = 0;
   int _multipleProb = 0;
-
-  // AI分析 口調設定
-  AnalysisTone _analysisTone = AnalysisTone.neutral;
 
   bool _obscureApi = true;
   bool _loading = true;
@@ -50,8 +45,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final incorrect = await SettingsService.getIncorrectKindProbability() ?? 0;
     final multiple = await SettingsService.getMultipleKindProbability() ?? 0;
 
-    final tone = await AiAnalysisPrefs.getTone();
-
     if (!mounted) return;
 
     setState(() {
@@ -60,8 +53,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _fiveChoiceProb = _clampPercent(five);
       _incorrectProb = _clampPercent(incorrect);
       _multipleProb = _clampPercent(multiple);
-
-      _analysisTone = tone;
       _loading = false;
     });
   }
@@ -76,8 +67,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await SettingsService.setFiveChoiceProbability(_fiveChoiceProb);
     await SettingsService.setIncorrectKindProbability(_incorrectProb);
     await SettingsService.setMultipleKindProbability(_multipleProb);
-
-    await AiAnalysisPrefs.setTone(_analysisTone);
 
     if (!mounted) return;
     FocusScope.of(context).unfocus();
@@ -102,8 +91,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ===== APIキー =====
-                const Text('OpenAI APIキー',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'OpenAI APIキー',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 6),
 
                 TextFormField(
@@ -116,11 +107,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     hintText: 'sk-xxxx…',
                     suffixIcon: IconButton(
                       tooltip: _obscureApi ? '表示' : '非表示',
-                      icon: Icon(_obscureApi
-                          ? Icons.visibility
-                          : Icons.visibility_off),
-                      onPressed: () =>
-                          setState(() => _obscureApi = !_obscureApi),
+                      icon: Icon(
+                        _obscureApi
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () => setState(
+                            () => _obscureApi = !_obscureApi,
+                      ),
                     ),
                   ),
                   validator: (v) {
@@ -135,89 +129,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 20),
 
                 // ===== モデル選択 =====
-                const Text('モデル',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'モデル',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   value: _selectedModel,
                   items: const [
                     DropdownMenuItem(
-                        value: 'gpt-4o-mini', child: Text('gpt-4o-mini')),
+                      value: 'gpt-4o-mini',
+                      child: Text('gpt-4o-mini'),
+                    ),
                     DropdownMenuItem(
-                        value: 'gpt-4o', child: Text('gpt-4o')),
+                      value: 'gpt-4o',
+                      child: Text('gpt-4o'),
+                    ),
                     DropdownMenuItem(
-                        value: 'gpt-5.1-mini',
-                        child: Text('gpt-5.1-mini')),
+                      value: 'gpt-5.1-mini',
+                      child: Text('gpt-5.1-mini'),
+                    ),
                     DropdownMenuItem(
-                        value: 'gpt-5.1', child: Text('gpt-5.1')),
+                      value: 'gpt-5.1',
+                      child: Text('gpt-5.1'),
+                    ),
                   ],
                   onChanged: (val) {
-                    if (val != null) setState(() => _selectedModel = val);
+                    if (val != null) {
+                      setState(() => _selectedModel = val);
+                    }
                   },
-                  decoration:
-                  const InputDecoration(border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                  ),
                 ),
                 const SizedBox(height: 30),
 
                 // ===== 出題オプション =====
-                const Text('出題オプション（確率設定）',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  '出題オプション（確率設定）',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 10),
 
                 _buildSlider(
                   label: '5択が出る確率',
                   value: _fiveChoiceProb,
-                  onChanged: (v) =>
-                      setState(() => _fiveChoiceProb = _clampPercent(v)),
+                  onChanged: (v) => setState(
+                        () => _fiveChoiceProb = _clampPercent(v),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
                 _buildSlider(
                   label: '誤答（間違いを選べ）問題の確率',
                   value: _incorrectProb,
-                  onChanged: (v) =>
-                      setState(() => _incorrectProb = _clampPercent(v)),
+                  onChanged: (v) => setState(
+                        () => _incorrectProb = _clampPercent(v),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
                 _buildSlider(
                   label: '複数選択（正解が2つ）問題の確率',
                   value: _multipleProb,
-                  onChanged: (v) =>
-                      setState(() => _multipleProb = _clampPercent(v)),
-                ),
-                const SizedBox(height: 30),
-
-                // ===== AI分析 口調設定 =====
-                const Text('AI分析の口調',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-
-                DropdownButtonFormField<AnalysisTone>(
-                  value: _analysisTone,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
+                  onChanged: (v) => setState(
+                        () => _multipleProb = _clampPercent(v),
                   ),
-                  items: AnalysisTone.values.map((tone) {
-                    return DropdownMenuItem(
-                      value: tone,
-                      child: Text(tone.label),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _analysisTone = val);
-                    }
-                  },
                 ),
-
-                const SizedBox(height: 6),
-                Text(
-                  _analysisTone.description,
-                  style: const TextStyle(
-                      fontSize: 12, color: Colors.black54),
-                ),
-
                 const SizedBox(height: 40),
 
                 // ===== 保存ボタン =====

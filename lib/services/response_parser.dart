@@ -2,12 +2,13 @@
 //
 // LLM 応答(JSON文字列)を画面向けの Map 形式に正規化する。
 // 形式ゆらぎ（配列/マップ/単一値/小文字/数値/インデックス等）に耐えるようガードを強化。
+// ★ correctAnswers は LLM の JSON を優先し、rationales では書き換えない方針。
 
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 class ResponseParser {
-  static const bool _debug = false;
+  static const bool _debug = true; // 一旦 true にして挙動を追いやすく
 
   /// content(JSON文字列) → 画面がそのまま使える Map に整形
   static Map<String, dynamic> parseContentToQuestion(
@@ -30,10 +31,14 @@ class ResponseParser {
     Map<String, dynamic> obj;
     try {
       obj = jsonDecode(_stripBom(content).trim()) as Map<String, dynamic>;
-    } catch (_) {
+    } catch (e) {
+      _debugPrint('decode failed (direct): $e');
       final extracted = _extractJsonObject(content);
       obj = jsonDecode(_stripBom(extracted)) as Map<String, dynamic>;
     }
+
+    // ログ：生の correctAnswers
+    _debugPrint('raw correctAnswers field = ${obj['correctAnswers']}');
 
     // ===== 基本構造の取得 =====
     final String question = (obj['question'] ?? '').toString().trim();
@@ -54,6 +59,7 @@ class ResponseParser {
       for (final k in orderedKeys) k: choices[k]!,
     };
 
+    // correctAnswers が choices に存在しないラベルを持っていたら落とす
     final filteredCorrect =
     correctAnswers.where(orderedChoices.containsKey).toList();
 
@@ -63,7 +69,8 @@ class ResponseParser {
         : (orderedChoices.isNotEmpty ? [orderedKeys.first] : <String>[]);
 
     _debugPrint('--- ResponseParser ---');
-    _debugPrint('kind=$kind  choices=${orderedChoices.keys}  correct=$safeCorrect');
+    _debugPrint(
+        'kind=$kind  choices=${orderedChoices.keys}  safeCorrect=$safeCorrect');
 
     return {
       'question': question,
@@ -137,7 +144,7 @@ class ResponseParser {
 
     if (raw is List) {
       for (final v in raw) addOne(v);
-    } else {
+    } else if (raw != null) {
       addOne(raw);
     }
 
@@ -145,6 +152,8 @@ class ResponseParser {
     final keep = acc.where(orderedLabels.contains).toList()
       ..sort((a, b) =>
           orderedLabels.indexOf(a).compareTo(orderedLabels.indexOf(b)));
+
+    _debugPrint('normalized correctAnswers = $keep');
     return keep;
   }
 

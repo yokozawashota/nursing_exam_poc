@@ -30,9 +30,12 @@ class QuestionService {
 
     // ===== ユーザー設定の読み取り =====
     final choiceMode = await SettingsService.getChoiceMode() ?? 'auto';
-    final probFiveChoice = (await SettingsService.getFiveChoiceProbability()) ?? 0;
-    final probMultiple = (await SettingsService.getMultipleKindProbability()) ?? 0;
-    final probIncorrect = (await SettingsService.getIncorrectKindProbability()) ?? 0;
+    final probFiveChoice =
+        (await SettingsService.getFiveChoiceProbability()) ?? 0;
+    final probMultiple =
+        (await SettingsService.getMultipleKindProbability()) ?? 0;
+    final probIncorrect =
+        (await SettingsService.getIncorrectKindProbability()) ?? 0;
 
     debugPrint(
       '[log] [SETTINGS] ChoiceMode=$choiceMode | 5択確率=${probFiveChoice}% | '
@@ -50,7 +53,8 @@ class QuestionService {
         desiredChoiceCount = 5;
         break;
       default:
-        desiredChoiceCount = rand.nextInt(100) < probFiveChoice ? 5 : 4;
+        desiredChoiceCount =
+        rand.nextInt(100) < probFiveChoice ? 5 : 4;
         break;
     }
 
@@ -94,7 +98,8 @@ class QuestionService {
       );
       final mids = majorNode.mids.map((m) => m.id).toList();
       if (mids.isNotEmpty) {
-        resolvedMid = await TopicPicker.pickHisshuMidForMajor(majorNode.id, mids);
+        resolvedMid =
+        await TopicPicker.pickHisshuMidForMajor(majorNode.id, mids);
         final MidCategory? midNode = _findMidNode(majorNode, resolvedMid);
         final topics =
         (midNode?.topics ?? const <Topic>[]).map((t) => t.label).toList();
@@ -108,7 +113,8 @@ class QuestionService {
         }
       }
     } else {
-      final DomainCategory tree = CategoryRepository.buildGeneralDomainTree(domain);
+      final DomainCategory tree =
+      CategoryRepository.buildGeneralDomainTree(domain);
       final MajorCategory majorNode = tree.majors.firstWhere(
             (m) => m.id == major,
         orElse: () => tree.majors.isNotEmpty
@@ -206,10 +212,12 @@ class QuestionService {
     );
 
     final Map<String, String>? choices =
-    (out['choices'] as Map?)?.map((k, v) => MapEntry(k.toString(), v.toString()));
+    (out['choices'] as Map?)
+        ?.map((k, v) => MapEntry(k.toString(), v.toString()));
 
     final List<String> correct =
-        ((out['correctAnswers'] as List?)?.map((e) => e.toString()).toList()) ?? [];
+        ((out['correctAnswers'] as List?)?.map((e) => e.toString()).toList()) ??
+            [];
 
     if (choices != null) {
       // 1) 正答が choices に含まれない場合の安全弁
@@ -230,11 +238,29 @@ class QuestionService {
       // 3) ★ 正答位置を完全ランダム化（毎回シャッフル）
       final remapped = _remapChoicesRandom(
         originalChoices: (out['choices'] as Map).cast<String, String>(),
-        originalCorrectLabels: (out['correctAnswers'] as List).cast<String>(),
+        originalCorrectLabels:
+        (out['correctAnswers'] as List).cast<String>(),
+        originalRationales:
+        (out['rationales'] as Map?)?.cast<String, String>(),
       );
 
-      out['choices'] = remapped.choices;           // 新しいラベル順（A..E）
-      out['correctAnswers'] = remapped.corrects;   // 付け替え後の正答ラベル
+      debugPrint(
+        '[log] [QS] before shuffle => kind=${out['questionKind']}, '
+            'choices=${choices.keys.join(',')} (len=${choices.length}), '
+            'correct=${correct.join(',')}',
+      );
+      debugPrint(
+        '[log] [QS] after shuffle  => kind=${out['questionKind']}, '
+            'choices=${remapped.choices.keys.join(',')} '
+            '(len=${remapped.choices.length}), '
+            'correct=${remapped.corrects.join(',')}',
+      );
+
+      out['choices'] = remapped.choices;         // 新しいラベル順（A..）
+      out['correctAnswers'] = remapped.corrects; // 新しい正答ラベル
+      if (remapped.rationales != null) {
+        out['rationales'] = remapped.rationales; // ★ 根拠も同じ順番に付け替え
+      }
     }
 
     debugPrint(
@@ -281,21 +307,27 @@ class QuestionService {
 class _RemapResult {
   final Map<String, String> choices;
   final List<String> corrects;
-  _RemapResult(this.choices, this.corrects);
+  final Map<String, String>? rationales;
+  _RemapResult(this.choices, this.corrects, this.rationales);
 }
 
 // ===== 正答位置を完全ランダム化 =====
 _RemapResult _remapChoicesRandom({
   required Map<String, String> originalChoices,
   required List<String> originalCorrectLabels,
+  Map<String, String>? originalRationales,
 }) {
   // 既存ラベルの並び（A..Eのうち存在するものだけ）
-  final labels = ['A', 'B', 'C', 'D', 'E'].where(originalChoices.containsKey).toList();
+  final labels =
+  ['A', 'B', 'C', 'D', 'E'].where(originalChoices.containsKey).toList();
   final n = labels.length;
   if (n <= 1) {
     return _RemapResult(
       Map<String, String>.from(originalChoices),
       List<String>.from(originalCorrectLabels),
+      originalRationales == null
+          ? null
+          : Map<String, String>.from(originalRationales),
     );
   }
 
@@ -306,19 +338,36 @@ _RemapResult _remapChoicesRandom({
     for (final k in labels) MapEntry(k, originalChoices[k]!)
   ]..shuffle(rng);
 
-  // A.. に貼り直す＆正答ラベルも付け替え
   final originalCorrectSet = originalCorrectLabels.toSet();
 
   final newChoices = <String, String>{};
   final newCorrects = <String>[];
+  Map<String, String>? newRationales =
+  originalRationales != null ? <String, String>{} : null;
+
   for (var i = 0; i < entries.length; i++) {
     final newLabel = String.fromCharCode('A'.codeUnitAt(0) + i);
-    final e = entries[i];
+    final e = entries[i]; // e.key = 旧ラベル, e.value = 選択肢文
+
     newChoices[newLabel] = e.value;
+
+    // 正答だった旧ラベルは、新しいラベルを正答に付け替える
     if (originalCorrectSet.contains(e.key)) {
       newCorrects.add(newLabel);
     }
+
+    // ★ rationales も 旧ラベル→新ラベルに写し替える
+    if (newRationales != null && originalRationales != null) {
+      final r = originalRationales[e.key];
+      if (r != null && r.isNotEmpty) {
+        newRationales[newLabel] = r;
+      }
+    }
   }
 
-  return _RemapResult(newChoices, newCorrects);
+  return _RemapResult(
+    newChoices,
+    newCorrects,
+    newRationales ?? originalRationales,
+  );
 }

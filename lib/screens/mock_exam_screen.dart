@@ -19,7 +19,7 @@ class MockExamScreen extends StatefulWidget {
   const MockExamScreen({
     super.key,
     required this.questionCount,
-    required this.examType, // 'mix' / '必修問題' / '一般問題' / '状況設定問題'
+    required this.examType, // 'mix' / '必修' など（ラベル）
   });
 
   final int questionCount;
@@ -55,7 +55,7 @@ class _MockExamScreenState extends State<MockExamScreen> {
   bool _isLoading = false;
   bool _finished = false;
 
-  // タイマー（簡易カウントダウン）
+  // タイマー
   Timer? _timer;
   late int _totalSeconds;
   int _remainingSeconds = 0;
@@ -78,7 +78,6 @@ class _MockExamScreenState extends State<MockExamScreen> {
 
   void _setupTimer() {
     // 問題数に応じたざっくり時間
-    // 10問: 15分, 30問: 45分, 60問: 90分 (以外は 3分/問 で計算)
     if (widget.questionCount == 10) {
       _totalSeconds = 15 * 60;
     } else if (widget.questionCount == 30) {
@@ -106,20 +105,35 @@ class _MockExamScreenState extends State<MockExamScreen> {
     });
   }
 
+  /// examType から「必修問題 / 一般問題 / 状況設定問題 / mix」を決める
   String _pickDifficulty() {
-    // examType によって使い分け
-    switch (widget.examType) {
-      case '必修問題':
-        return '必修問題';
-      case '一般問題':
-        return '一般問題';
-      case '状況設定問題':
-        return '状況設定問題';
-      case 'mix':
-      default:
-        const diffs = ['必修問題', '一般問題', '状況設定問題'];
-        return diffs[_rand.nextInt(diffs.length)];
+    final t = widget.examType;
+
+    // ① まず内部IDで判定（hisshu / general / situational / mix など）
+    if (t == 'hisshu') {
+      return '必修問題';
     }
+    if (t == 'general') {
+      return '一般問題';
+    }
+    if (t == 'situational') {
+      return '状況設定問題';
+    }
+
+    // ② 念のため日本語ラベルでも判定（将来ラベルが変わってもだいたい対応できるように）
+    if (t.contains('必修')) {
+      return '必修問題';
+    }
+    if (t.contains('一般')) {
+      return '一般問題';
+    }
+    if (t.contains('状況')) {
+      return '状況設定問題';
+    }
+
+    // ③ それ以外は完全ミックス
+    const diffs = ['必修問題', '一般問題', '状況設定問題'];
+    return diffs[_rand.nextInt(diffs.length)];
   }
 
   String _randomScenarioAspectCode() {
@@ -141,7 +155,9 @@ class _MockExamScreenState extends State<MockExamScreen> {
     });
 
     try {
+      // ★ ここで examType → difficulty を一意に決定
       final difficulty = _pickDifficulty();
+
       String domain;
       String major;
       String? mid;
@@ -154,14 +170,14 @@ class _MockExamScreenState extends State<MockExamScreen> {
           throw StateError('必修の大項目が定義されていません。');
         }
         major = majors[_rand.nextInt(majors.length)];
-        mid = null; // mid/小項目は QuestionService に任せる
+        mid = null;
         scenarioAspect = null;
       } else {
         // 一般 / 状況設定
-        final List<String> domainList =
-        (difficulty == '状況設定問題')
+        final List<String> domainList = (difficulty == '状況設定問題')
             ? situationalDomains
             : CategoryRepository.generalDomains();
+
         if (domainList.isEmpty) {
           throw StateError('一般/状況設定の分野が定義されていません。');
         }
@@ -176,6 +192,11 @@ class _MockExamScreenState extends State<MockExamScreen> {
         scenarioAspect =
         (difficulty == '状況設定問題') ? _randomScenarioAspectCode() : null;
       }
+
+      // ★ ログ出力：どの条件で出題しているか確認用
+      debugPrint(
+          '[log] [MOCK] Q${_currentIndex + 1}: examType="${widget.examType}" '
+              '=> difficulty=$difficulty, domain=$domain, major=$major, scenarioAspect=$scenarioAspect');
 
       final data = await QuestionService.fetchQuestion(
         difficulty: difficulty,
@@ -239,13 +260,12 @@ class _MockExamScreenState extends State<MockExamScreen> {
       return;
     }
 
-    // 履歴保存 & 模試内リスト追加
     try {
       final rec = AnswerRecord(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         ts: DateTime.now(),
-        difficulty: _currentDifficulty ??
-            (_meta?['difficulty']?.toString() ?? ''),
+        difficulty:
+        _currentDifficulty ?? (_meta?['difficulty']?.toString() ?? ''),
         domain: (_meta?['domain'] as String?) ?? _currentDomain,
         major: (_meta?['major'] as String?) ?? _currentMajor,
         mid: (_meta?['mid'] as String?) ?? _currentMid,
@@ -262,6 +282,10 @@ class _MockExamScreenState extends State<MockExamScreen> {
 
       _records.add(rec);
       await AnswerHistory.instance.add(rec);
+
+      // ★ ログ：履歴に保存された difficulty を確認
+      debugPrint(
+          '[log] [MOCK] saved record: difficulty=${rec.difficulty}, domain=${rec.domain}, major=${rec.major}');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -272,7 +296,6 @@ class _MockExamScreenState extends State<MockExamScreen> {
 
     if (!mounted || _finished) return;
 
-    // 最後の問題なら結果画面へ
     if (_currentIndex + 1 >= widget.questionCount) {
       _finishExam(byTimeout: false);
     } else {
@@ -402,16 +425,14 @@ class _MockExamScreenState extends State<MockExamScreen> {
                     // 単一選択
                     selectedLabel:
                     (_questionKind == 'multiple' ||
-                        _questionKind ==
-                            'select_incorrect')
+                        _questionKind == 'select_incorrect')
                         ? null
                         : (_userAnswers.isNotEmpty
                         ? _userAnswers.first
                         : null),
                     onSelect:
                     (_questionKind == 'multiple' ||
-                        _questionKind ==
-                            'select_incorrect')
+                        _questionKind == 'select_incorrect')
                         ? null
                         : (val) {
                       setState(() {
@@ -421,18 +442,15 @@ class _MockExamScreenState extends State<MockExamScreen> {
                     // 複数選択
                     selectedLabels:
                     (_questionKind == 'multiple' ||
-                        _questionKind ==
-                            'select_incorrect')
+                        _questionKind == 'select_incorrect')
                         ? _userAnswers.toList()
                         : null,
                     onToggle:
                     (_questionKind == 'multiple' ||
-                        _questionKind ==
-                            'select_incorrect')
+                        _questionKind == 'select_incorrect')
                         ? (val) {
                       setState(() {
-                        if (_userAnswers
-                            .contains(val)) {
+                        if (_userAnswers.contains(val)) {
                           _userAnswers.remove(val);
                         } else {
                           _userAnswers.add(val);
@@ -452,6 +470,7 @@ class _MockExamScreenState extends State<MockExamScreen> {
   }
 }
 
+// === 結果画面（ここは前回と同じ） ===
 class MockExamResultScreen extends StatelessWidget {
   const MockExamResultScreen({
     super.key,
@@ -630,10 +649,9 @@ class MockExamResultScreen extends StatelessWidget {
                   icon: const Icon(Icons.history_rounded),
                   label: const Text('解答履歴で詳細を見る'),
                   onPressed: () {
-                    // いったんホームへ戻してから履歴タブを選択してもらう想定。
                     Navigator.of(context)
                         .popUntil((route) => route.isFirst);
-                    // BottomNavShell 内のタブ選択までは、後続のアップデートで対応も可能。
+                    // AnswerHistoryScreen 側から履歴を参照
                   },
                 ),
               ),

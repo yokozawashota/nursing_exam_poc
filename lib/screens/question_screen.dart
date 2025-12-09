@@ -1,16 +1,29 @@
 // lib/screens/question_screen.dart
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../widgets/base_scaffold.dart';
 import '../widgets/question_block.dart';
 import '../widgets/question_controls.dart';
 
-import '../services/category_repository.dart';   // 候補取得
-import '../data/categories.dart';                // situationalDomains
+import '../services/category_repository.dart'; // 候補取得
+import '../data/categories.dart'; // situationalDomains
 import '../services/question_service.dart';
-import '../models/answer_history.dart';          // 履歴保存
+import '../models/answer_history.dart'; // 履歴保存
 import 'result_screen.dart';
+
+// ランダム指定用の内部ID（QuestionControls 側と揃える想定）
+const String kRandomDomainId = '__RANDOM_DOMAIN__';
+const String kRandomMajorId = '__RANDOM_MAJOR__';
+
+// 分野・大項目・中項目をまとめて返すための小さな内部モデル
+class _ResolvedCategory {
+  final String domain;
+  final String major;
+  final String? mid;
+  const _ResolvedCategory(this.domain, this.major, this.mid);
+}
 
 class QuestionScreen extends StatefulWidget {
   const QuestionScreen({super.key});
@@ -35,12 +48,11 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
   String _mode = modeHisshu;
 
-  // 一般／状況設定 共通の選択
+  // 一般／状況設定 共通の選択（UI 上の値）
   String _selectedDomain = CategoryRepository.generalDomains().isNotEmpty
       ? CategoryRepository.generalDomains().first
       : '';
-  String _selectedMajor =
-  CategoryRepository.generalMajorsOf(
+  String _selectedMajor = CategoryRepository.generalMajorsOf(
     CategoryRepository.generalDomains().isNotEmpty
         ? CategoryRepository.generalDomains().first
         : '',
@@ -104,6 +116,77 @@ class _QuestionScreenState extends State<QuestionScreen> {
     return keys[Random().nextInt(keys.length)];
   }
 
+  // ==========================
+  // 分野・大項目・中項目の最終決定
+  // （ランダムで決まった結果もここで確定させる）
+  // ==========================
+  _ResolvedCategory _resolveCategoryForGeneration() {
+    // 必修はこの関数は経由しない想定（_generateQuestion 側で処理）
+    if (_mode == modeHisshu) {
+      return _ResolvedCategory('必修', _selectedHisshuMajor, null);
+    }
+
+    final List<String> domainList = _mode == modeSituational
+        ? situationalDomains
+        : CategoryRepository.generalDomains();
+
+    final rand = Random(DateTime.now().microsecondsSinceEpoch);
+
+    // ↓ ユーザーが「ランダム」を選んだかどうかのフラグ
+    final bool domainRandomRequested = _selectedDomain == kRandomDomainId;
+    final bool majorRandomRequested = _selectedMajor == kRandomMajorId;
+
+    // ---- 分野 ----
+    String domain = _selectedDomain;
+    if (domainRandomRequested || !domainList.contains(domain)) {
+      if (domainList.isNotEmpty) {
+        domain = domainList[rand.nextInt(domainList.length)];
+      } else {
+        domain = '';
+      }
+    }
+
+    // ---- 大項目 ----
+    final majorsOfDomain = CategoryRepository.generalMajorsOf(domain);
+    String major = _selectedMajor;
+    if (majorRandomRequested ||
+        major.isEmpty ||
+        !majorsOfDomain.contains(major)) {
+      if (majorsOfDomain.isNotEmpty) {
+        major = majorsOfDomain[rand.nextInt(majorsOfDomain.length)];
+      } else {
+        major = '';
+      }
+    }
+
+    // ---- 中項目 ----
+    String? mid;
+    bool midRandomUsed = false;
+    if (_useMid) {
+      final mids = CategoryRepository.generalMidsOf(domain, major);
+      if (_selectedMid != null &&
+          _selectedMid!.isNotEmpty &&
+          mids.contains(_selectedMid)) {
+        mid = _selectedMid;
+      } else if (mids.isNotEmpty) {
+        midRandomUsed = true;
+        mid = mids[rand.nextInt(mids.length)];
+      }
+    } else {
+      mid = null;
+    }
+
+    // ▼ ログ出力（ランダム指定がどう解決されたかを確認できる）
+    debugPrint(
+      '[log] [QSCREEN] resolved category '
+          '(mode=$_mode, domainRandom=$domainRandomRequested, '
+          'majorRandom=$majorRandomRequested, midRandom=$midRandomUsed) '
+          '=> domain="$domain", major="$major", mid="${mid ?? '(none)'}"',
+    );
+
+    return _ResolvedCategory(domain, major, mid);
+  }
+
   Future<void> _generateQuestion() async {
     setState(() {
       _isLoading = true;
@@ -126,17 +209,32 @@ class _QuestionScreenState extends State<QuestionScreen> {
       String? scenarioAspectCode;
 
       if (_mode == modeHisshu) {
+        // 必修は分野「必修」、大項目は UI 選択値そのまま
         domainArg = '必修';
         majorArg = _selectedHisshuMajor;
         midArg = null;
+
+        debugPrint(
+          '[log] [QS] category resolved (hisshu) => '
+              'mode=$_mode | domain=$domainArg | major=$majorArg | mid=(none)',
+        );
       } else {
-        domainArg = _selectedDomain;
-        majorArg = _selectedMajor;
-        midArg = _useMid ? _selectedMid : null;
+        // 一般／状況設定はランダム指定を解決
+        final resolved = _resolveCategoryForGeneration();
+        domainArg = resolved.domain;
+        majorArg = resolved.major;
+        midArg = resolved.mid;
 
         if (_mode == modeSituational) {
+          final bool wasRandomAspect = _selectedScenarioAspectCode == null;
           scenarioAspectCode =
               _selectedScenarioAspectCode ?? _randomScenarioAspectCode();
+
+          debugPrint(
+            '[log] [QS] scenarioAspect resolved => '
+                'mode=$_mode | aspect=$scenarioAspectCode'
+                '${wasRandomAspect ? " (random)" : " (selected)"}',
+          );
         }
       }
 
@@ -256,7 +354,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
         ? situationalDomains
         : CategoryRepository.generalDomains();
 
-    // === 修正：select_incorrect でも常に選択できるように ===
+    // select_incorrect も含めて「正答が複数」ならチェックボックスモード
     final bool isMulti = _questionKind == 'multiple' ||
         _questionKind == 'select_incorrect' ||
         (_correctAnswers?.length ?? 0) >= 2;
@@ -303,8 +401,8 @@ class _QuestionScreenState extends State<QuestionScreen> {
                 CategoryRepository.generalMajorsOf(_selectedDomain),
                 selectedMajor: _selectedMajor,
                 onMajorChanged: (val) {
-                  final mids = CategoryRepository.generalMidsOf(
-                      _selectedDomain, val);
+                  final mids =
+                  CategoryRepository.generalMidsOf(_selectedDomain, val);
                   setState(() {
                     _selectedMajor = val;
                     _selectedMid = mids.isNotEmpty ? mids.first : null;
