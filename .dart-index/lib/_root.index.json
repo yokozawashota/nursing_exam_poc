@@ -1,13 +1,13 @@
 {
   "folder": "lib/_root",
-  "generatedAt": "2025-11-28T22:01:41.329307ZZ",
+  "generatedAt": "2025-12-09T02:23:19.055244ZZ",
   "count": 1,
   "items": [
     {
       "path": "lib/main.dart",
       "file": "main.dart",
       "size": 928,
-      "modified": "2025-11-28T22:00:35.348Z",
+      "modified": "2025-12-09T02:22:46.089Z",
       "content": "// lib/main.dart\nimport 'package:flutter/material.dart';\nimport 'package:flutter/services.dart';          // ★ 追加：画面向き制御用\nimport 'theme/app_theme.dart';\nimport 'widgets/bottom_nav_shell.dart';\n\nFuture<void> main() async {\n  // ★ runApp の前に初期化\n  WidgetsFlutterBinding.ensureInitialized();\n\n  // ★ 画面向きを「縦（上向き）」に固定（逆さNG）\n  await SystemChrome.setPreferredOrientations([\n    DeviceOrientation.portraitUp,\n  ]);\n\n  runApp(const NurAIApp());\n}\n\nclass NurAIApp extends StatelessWidget {\n  const NurAIApp({super.key});\n\n  @override\n  Widget build(BuildContext context) {\n    return MaterialApp(\n      title: 'NurAI',\n      debugShowCheckedModeBanner: false,\n\n      // ⭐ 新しいテーマ構造（buildAppTheme を使用）\n      theme: buildAppTheme(),\n\n      home: const BottomNavShell(), // ← 常時ボトムナビ付き構成そのまま\n    );\n  }\n}"
     }
   ]

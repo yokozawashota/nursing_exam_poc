@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-11-28T22:01:41.329307ZZ",
+  "generatedAt": "2025-12-09T02:23:19.055244ZZ",
   "folders": [
     {
       "folder": "lib/_root",
@@ -11,7 +11,7 @@
       "folder": "lib/ai_analysis",
       "index": "lib/ai_analysis/index.json",
       "flatIndex": "lib/ai_analysis.index.json",
-      "count": 5
+      "count": 7
     },
     {
       "folder": "lib/data",
