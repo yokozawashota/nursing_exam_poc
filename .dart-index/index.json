@@ -1,11 +1,17 @@
 {
-  "generatedAt": "2025-10-22T05:04:39.005295ZZ",
+  "generatedAt": "2025-11-28T22:01:41.329307ZZ",
   "folders": [
     {
       "folder": "lib/_root",
       "index": "lib/_root/index.json",
       "flatIndex": "lib/_root.index.json",
       "count": 1
+    },
+    {
+      "folder": "lib/ai_analysis",
+      "index": "lib/ai_analysis/index.json",
+      "flatIndex": "lib/ai_analysis.index.json",
+      "count": 5
     },
     {
       "folder": "lib/data",
@@ -17,19 +23,19 @@
       "folder": "lib/models",
       "index": "lib/models/index.json",
       "flatIndex": "lib/models.index.json",
-      "count": 3
+      "count": 4
     },
     {
       "folder": "lib/screens",
       "index": "lib/screens/index.json",
       "flatIndex": "lib/screens.index.json",
-      "count": 6
+      "count": 15
     },
     {
       "folder": "lib/services",
       "index": "lib/services/index.json",
       "flatIndex": "lib/services.index.json",
-      "count": 11
+      "count": 13
     },
     {
       "folder": "lib/theme",
@@ -47,7 +53,7 @@
       "folder": "lib/widgets",
       "index": "lib/widgets/index.json",
       "flatIndex": "lib/widgets.index.json",
-      "count": 10
+      "count": 11
     }
   ]
 }
