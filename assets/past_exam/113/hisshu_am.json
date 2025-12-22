@@ -1,0 +1,28 @@
+[
+  {
+    "sourceType": "past_exam",
+    "sourceTag": "第113回 午前 必修 1問",
+    "difficulty": "必修問題",
+    "domain": "人体の構造と機能",
+    "major": "細胞と組織",
+    "mid": null,
+    "topic": "細胞内小器官の機能",
+    "questionText": "細胞内小器官の説明として正しいのはどれか。",
+    "questionKind": "single",
+    "requiredCorrectCount": 1,
+    "choices": {
+      "A": "リボソームは ATP を産生する。",
+      "B": "ミトコンドリアは ATP を産生する。",
+      "C": "ゴルジ体は DNA を複製する。",
+      "D": "リソソームはタンパク質合成を行う。"
+    },
+    "correctLabels": ["B"],
+    "explanation": "ミトコンドリアは細胞内での ATP 産生の主な場である。",
+    "rationales": {
+      "A": "リボソームはタンパク質合成を行う。",
+      "B": "正しい。",
+      "C": "DNA 複製は主に細胞核で行われる。",
+      "D": "リソソームは分解酵素を含み、細胞内消化を担う。"
+    }
+  }
+]

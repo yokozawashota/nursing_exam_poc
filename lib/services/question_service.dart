@@ -11,9 +11,68 @@ import 'prompt_builder.dart';
 import 'response_parser.dart';
 import 'category_repository.dart';
 import '../models/category_models.dart';
+import '../models/nurai_question.dart';
 
 class QuestionService {
   static const String _endpoint = 'https://api.openai.com/v1/chat/completions';
+
+  /// ✅ 新メソッド（モデル直返し）
+  /// AIから問題を取得し、そのまま NuraiQuestion モデルに変換して返す。
+  /// ※ NuraiQuestion.fromAi は使わない（存在しないため）
+  static Future<NuraiQuestion> fetchNuraiQuestion({
+    required String difficulty,
+    required String domain,
+    required String major,
+    String? mid,
+    String? scenarioAspect,
+  }) async {
+    // 既存の fetchQuestion を利用（Mapを返す）
+    final raw = await fetchQuestion(
+      difficulty: difficulty,
+      domain: domain,
+      major: major,
+      mid: mid,
+      scenarioAspect: scenarioAspect,
+    );
+
+    // raw(Map) → NuraiQuestion に変換（後方互換も少しだけ考慮）
+    final Map<String, String> choices =
+    (raw['choices'] as Map? ?? {}).map((k, v) => MapEntry('$k', '$v'));
+
+    final List<String> correctLabels =
+    ((raw['correctAnswers'] as List?) ?? const [])
+        .map((e) => e.toString())
+        .toList();
+
+    final Map<String, String>? rationales =
+    (raw['rationales'] as Map?)?.map((k, v) => MapEntry('$k', '$v'));
+
+    final String questionText =
+    (raw['question'] ?? raw['questionText'] ?? '').toString();
+
+    final String kind = (raw['questionKind'] ?? 'single').toString();
+
+    final int requiredCorrectCount =
+        (raw['requiredCorrectCount'] as int?) ??
+            correctLabels.length.clamp(1, choices.length);
+
+    return NuraiQuestion(
+      questionText: questionText,
+      choices: choices,
+      correctLabels: correctLabels,
+      rationales: rationales,
+      explanation: raw['explanation']?.toString(),
+      questionKind: kind,
+      requiredCorrectCount: requiredCorrectCount,
+      difficulty: difficulty,
+      domain: domain,
+      major: major,
+      mid: raw['mid']?.toString(),
+      topic: raw['topic']?.toString(),
+      sourceType: 'ai',
+      sourceTag: raw['sourceTag']?.toString(),
+    );
+  }
 
   static Future<Map<String, dynamic>> fetchQuestion({
     required String difficulty,
@@ -53,8 +112,7 @@ class QuestionService {
         desiredChoiceCount = 5;
         break;
       default:
-        desiredChoiceCount =
-        rand.nextInt(100) < probFiveChoice ? 5 : 4;
+        desiredChoiceCount = rand.nextInt(100) < probFiveChoice ? 5 : 4;
         break;
     }
 
@@ -212,8 +270,7 @@ class QuestionService {
     );
 
     final Map<String, String>? choices =
-    (out['choices'] as Map?)
-        ?.map((k, v) => MapEntry(k.toString(), v.toString()));
+    (out['choices'] as Map?)?.map((k, v) => MapEntry(k.toString(), v.toString()));
 
     final List<String> correct =
         ((out['correctAnswers'] as List?)?.map((e) => e.toString()).toList()) ??
@@ -238,10 +295,8 @@ class QuestionService {
       // 3) ★ 正答位置を完全ランダム化（毎回シャッフル）
       final remapped = _remapChoicesRandom(
         originalChoices: (out['choices'] as Map).cast<String, String>(),
-        originalCorrectLabels:
-        (out['correctAnswers'] as List).cast<String>(),
-        originalRationales:
-        (out['rationales'] as Map?)?.cast<String, String>(),
+        originalCorrectLabels: (out['correctAnswers'] as List).cast<String>(),
+        originalRationales: (out['rationales'] as Map?)?.cast<String, String>(),
       );
 
       debugPrint(
@@ -256,10 +311,10 @@ class QuestionService {
             'correct=${remapped.corrects.join(',')}',
       );
 
-      out['choices'] = remapped.choices;         // 新しいラベル順（A..）
+      out['choices'] = remapped.choices; // 新しいラベル順（A..）
       out['correctAnswers'] = remapped.corrects; // 新しい正答ラベル
       if (remapped.rationales != null) {
-        out['rationales'] = remapped.rationales; // ★ 根拠も同じ順番に付け替え
+        out['rationales'] = remapped.rationales; // 根拠も同じ順番に付け替え
       }
     }
 
@@ -299,7 +354,7 @@ class QuestionService {
 
   static String _firstLines(String s, {int maxChars = 300}) {
     final t = s.replaceAll('\n', ' ');
-    return (t.length <= maxChars) ? t : t.substring(0, maxChars) + '...';
+    return (t.length <= maxChars) ? t : '${t.substring(0, maxChars)}...';
   }
 }
 
@@ -325,9 +380,7 @@ _RemapResult _remapChoicesRandom({
     return _RemapResult(
       Map<String, String>.from(originalChoices),
       List<String>.from(originalCorrectLabels),
-      originalRationales == null
-          ? null
-          : Map<String, String>.from(originalRationales),
+      originalRationales == null ? null : Map<String, String>.from(originalRationales),
     );
   }
 
@@ -356,7 +409,7 @@ _RemapResult _remapChoicesRandom({
       newCorrects.add(newLabel);
     }
 
-    // ★ rationales も 旧ラベル→新ラベルに写し替える
+    // rationales も 旧ラベル→新ラベルに写し替える
     if (newRationales != null && originalRationales != null) {
       final r = originalRationales[e.key];
       if (r != null && r.isNotEmpty) {

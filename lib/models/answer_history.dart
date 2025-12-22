@@ -1,38 +1,51 @@
 // lib/models/answer_history.dart
 import 'dart:convert';
-import 'package:flutter/foundation.dart';              // ★ 追加：ValueNotifier 用
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 解答履歴 1件分（スナップショット保存型）
+///
 /// Phase0/1/2 の拡張に対応：
 /// - 可変択数 `choiceCount`
 /// - 設問タイプ `questionKind` ('single' / 'multiple' / 'select_incorrect')
 /// - 複数解答 `userAnswers` / 複数正答 `correctAnswers`
+///
+/// さらに過去問連携用に：
+/// - `sourceType`: 'ai' / 'past_exam' など
+/// - `sourceTag` : '第113回 必修 午前 1問' など、問題の識別タグ
+///
 /// 後方互換：旧データ（単一解答）も自動で配列化して読み込みます。
 class AnswerRecord {
-  final String id;                // 例: epoch_ms 文字列
-  final DateTime ts;              // タイムスタンプ
-  final String difficulty;        // '必修問題' / '一般問題' / '状況設定問題'
-  final String? domain;           // 分野
-  final String? major;            // 大項目
-  final String? mid;              // 中項目
-  final String? topic;            // 小項目（内部選定）
+  final String id; // 例: epoch_ms 文字列
+  final DateTime ts; // タイムスタンプ
+  final String difficulty; // '必修問題' / '一般問題' / '状況設定問題'
+  final String? domain; // 分野
+  final String? major; // 大項目
+  final String? mid; // 中項目
+  final String? topic; // 小項目（内部選定）
 
   // スナップショット（本文）
   final String question;
-  final Map<String, String> choices;     // 'A'.. : '本文'
-  final String? explanation;             // 解説
+  final Map<String, String> choices; // 'A'.. : '本文'
+  final String? explanation; // 解説
   final Map<String, String>? rationales; // 可能なら
 
   // --- Phase 拡張 ---
-  final int choiceCount;                 // 4/5...（未指定時は choices.length を採用）
-  final String questionKind;             // 'single' / 'multiple' / 'select_incorrect'
-  final List<String> userAnswers;        // ユーザー選択（複数対応）
-  final List<String> correctAnswers;     // 正答（複数対応）
+  final int choiceCount; // 4/5...（未指定時は choices.length を採用）
+  final String questionKind; // 'single' / 'multiple' / 'select_incorrect'
+  final List<String> userAnswers; // ユーザー選択（複数対応）
+  final List<String> correctAnswers; // 正答（複数対応）
+
+  // --- ソース情報（AI / 過去問 などの区別用） ---
+  /// 'ai', 'past_exam' など。未指定の場合は null。
+  final String? sourceType;
+
+  /// 例: '第113回 必修 午前 1問' など、問題を一意に識別しやすいタグ
+  final String? sourceTag;
 
   // --- 互換getter（旧UI用） ---
   String? get userAnswer => userAnswers.isNotEmpty ? userAnswers.first : null;
-  String  get correct    => correctAnswers.isNotEmpty ? correctAnswers.first : '';
+  String get correct => correctAnswers.isNotEmpty ? correctAnswers.first : '';
 
   /// 正誤判定
   ///
@@ -74,6 +87,8 @@ class AnswerRecord {
     this.questionKind = 'single',
     List<String>? userAnswers,
     List<String>? correctAnswers,
+    this.sourceType,
+    this.sourceTag,
   })  : userAnswers = userAnswers ?? const <String>[],
         correctAnswers = correctAnswers ?? const <String>[];
 
@@ -100,19 +115,24 @@ class AnswerRecord {
       return const <String, String>{};
     }
 
-    final id          = (j['id'] ?? '').toString();
-    final ts          = _parseTs(j['ts']);
-    final difficulty  = (j['difficulty'] ?? '').toString();
-    final domain      = j['domain']?.toString();
-    final major       = j['major']?.toString();
-    final mid         = j['mid']?.toString();
-    final topic       = j['topic']?.toString();
-    final question    = (j['question'] ?? '').toString();
-    final choices     = _parseChoices(j['choices']);
+    final id = (j['id'] ?? '').toString();
+    final ts = _parseTs(j['ts']);
+    final difficulty = (j['difficulty'] ?? '').toString();
+    final domain = j['domain']?.toString();
+    final major = j['major']?.toString();
+    final mid = j['mid']?.toString();
+    final topic = j['topic']?.toString();
+    final question = (j['question'] ?? '').toString();
+    final choices = _parseChoices(j['choices']);
     final explanation = j['explanation']?.toString();
-    final rationales  = (j['rationales'] is Map)
-        ? (j['rationales'] as Map).map((k, v) => MapEntry(k.toString(), v.toString()))
+    final rationales = (j['rationales'] is Map)
+        ? (j['rationales'] as Map)
+        .map((k, v) => MapEntry(k.toString(), v.toString()))
         : null;
+
+    // 新フィールド（あってもなくてもOK）
+    final sourceType = j['sourceType']?.toString();
+    final sourceTag = j['sourceTag']?.toString();
 
     // ラベル正規化（' a ' → 'A'）
     List<String> _normList(dynamic any) {
@@ -136,10 +156,10 @@ class AnswerRecord {
     }
 
     if (version >= 2) {
-      final cc   = _resolveChoiceCount(j['choiceCount'] as int?);
+      final cc = _resolveChoiceCount(j['choiceCount'] as int?);
       final kind = (j['questionKind'] ?? 'single').toString();
-      final ua   = _normList(j['userAnswers']);
-      final ca   = _normList(j['correctAnswers']);
+      final ua = _normList(j['userAnswers']);
+      final ca = _normList(j['correctAnswers']);
       return AnswerRecord(
         id: id,
         ts: ts,
@@ -156,6 +176,8 @@ class AnswerRecord {
         questionKind: kind,
         userAnswers: ua,
         correctAnswers: ca,
+        sourceType: sourceType,
+        sourceTag: sourceTag,
       );
     } else {
       // 旧形式 → 新形式に変換
@@ -187,6 +209,8 @@ class AnswerRecord {
         questionKind: 'single',
         userAnswers: uaList,
         correctAnswers: caList,
+        sourceType: sourceType,
+        sourceTag: sourceTag,
       );
     }
   }
@@ -208,6 +232,8 @@ class AnswerRecord {
     'questionKind': questionKind,
     'userAnswers': userAnswers,
     'correctAnswers': correctAnswers,
+    'sourceType': sourceType,
+    'sourceTag': sourceTag,
   };
 
   AnswerRecord copyWith({
@@ -226,6 +252,8 @@ class AnswerRecord {
     String? questionKind,
     List<String>? userAnswers,
     List<String>? correctAnswers,
+    String? sourceType,
+    String? sourceTag,
   }) {
     return AnswerRecord(
       id: id ?? this.id,
@@ -243,6 +271,8 @@ class AnswerRecord {
       questionKind: questionKind ?? this.questionKind,
       userAnswers: userAnswers ?? this.userAnswers,
       correctAnswers: correctAnswers ?? this.correctAnswers,
+      sourceType: sourceType ?? this.sourceType,
+      sourceTag: sourceTag ?? this.sourceTag,
     );
   }
 }
@@ -290,6 +320,39 @@ class AnswerHistory {
     if (list.length > _maxKeep) {
       list.removeRange(_maxKeep, list.length);
     }
+    await sp.setStringList(_storageKey, list);
+
+    // 🔔 UIに「変わったよ」と知らせる
+    _version.value++;
+  }
+
+  /// 1件削除（id一致）
+  ///
+  /// - 1件=1JSON文字列 なので decode して id を確認
+  /// - 壊れたエントリは「削除対象ではない」として残す（all() と同じ思想）
+  Future<void> removeById(String id) async {
+    final sp = await SharedPreferences.getInstance();
+    final list = sp.getStringList(_storageKey) ?? <String>[];
+
+    if (list.isEmpty) return;
+
+    final before = list.length;
+
+    list.removeWhere((s) {
+      try {
+        final obj = jsonDecode(s);
+        if (obj is Map) {
+          final rid = (obj['id'] ?? '').toString();
+          return rid == id;
+        }
+      } catch (_) {
+        // 壊れデータはここでは消さない（安全優先）
+      }
+      return false;
+    });
+
+    if (list.length == before) return;
+
     await sp.setStringList(_storageKey, list);
 
     // 🔔 UIに「変わったよ」と知らせる

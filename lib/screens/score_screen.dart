@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../models/answer_history.dart';
 import '../widgets/base_scaffold.dart';
 import '../widgets/history_charts.dart'; // MiniBarChart / buildBarItemsFromStatMap
+import '../widgets/exam_score_summary_card.dart';
+import '../theme/app_theme.dart';
 
 class ScoreScreen extends StatefulWidget {
   const ScoreScreen({super.key});
@@ -15,6 +17,7 @@ class ScoreScreen extends StatefulWidget {
 class _ScoreScreenState extends State<ScoreScreen>
     with SingleTickerProviderStateMixin {
   late Future<List<AnswerRecord>> _future;
+
   String _filter = 'すべて'; // 'すべて' / '直近1週間' / '直近1ヶ月'
 
   late final AnimationController _animController;
@@ -62,7 +65,6 @@ class _ScoreScreenState extends State<ScoreScreen>
         final from7 = now.subtract(const Duration(days: 7));
         return items.where((r) => r.ts.isAfter(from7)).toList();
       case '直近1ヶ月':
-      // 月減算のバグを避けるため、30日固定で扱う
         final from30 = now.subtract(const Duration(days: 30));
         return items.where((r) => r.ts.isAfter(from30)).toList();
       default:
@@ -90,7 +92,12 @@ class _ScoreScreenState extends State<ScoreScreen>
           }
 
           final allItems = snap.data ?? const <AnswerRecord>[];
-          final items = _applyFilter(allItems);
+
+          // ★ AI学習成績のみを対象（過去問はスコア画面では扱わない）
+          final trainingItems =
+          allItems.where((r) => r.sourceType != 'past_exam').toList();
+
+          final filteredTraining = _applyFilter(trainingItems);
 
           return RefreshIndicator(
             onRefresh: _reload,
@@ -99,13 +106,13 @@ class _ScoreScreenState extends State<ScoreScreen>
               children: [
                 _buildFilterDropdown(),
                 const SizedBox(height: 16),
-                if (items.isEmpty)
+                if (filteredTraining.isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(top: 40),
                     child: Center(child: Text('該当する解答履歴がありません')),
                   )
                 else
-                  _buildContent(items),
+                  _buildTrainingContent(filteredTraining),
               ],
             ),
           );
@@ -114,7 +121,11 @@ class _ScoreScreenState extends State<ScoreScreen>
     );
   }
 
-  Widget _buildContent(List<AnswerRecord> items) {
+  // ============================
+  //  トレーニング成績（AI問題）
+  // ============================
+
+  Widget _buildTrainingContent(List<AnswerRecord> items) {
     final theme = Theme.of(context);
 
     // ===== 集計 =====
@@ -141,8 +152,7 @@ class _ScoreScreenState extends State<ScoreScreen>
       byDomain.putIfAbsent(dom, () => {'total': 0, 'correct': 0});
       byDomain[dom]!['total'] = (byDomain[dom]!['total'] ?? 0) + 1;
       if (r.isCorrect) {
-        byDomain[dom]!['correct'] =
-            (byDomain[dom]!['correct'] ?? 0) + 1;
+        byDomain[dom]!['correct'] = (byDomain[dom]!['correct'] ?? 0) + 1;
       }
     }
 
@@ -152,7 +162,8 @@ class _ScoreScreenState extends State<ScoreScreen>
       final diff = r.difficulty;
       final dom = (r.domain == null || r.domain!.isEmpty) ? '未指定' : r.domain!;
       byDifficultyDomain.putIfAbsent(diff, () => <String, Map<String, int>>{});
-      byDifficultyDomain[diff]!.putIfAbsent(dom, () => {'total': 0, 'correct': 0});
+      byDifficultyDomain[diff]!
+          .putIfAbsent(dom, () => {'total': 0, 'correct': 0});
       byDifficultyDomain[diff]![dom]!['total'] =
           (byDifficultyDomain[diff]![dom]!['total'] ?? 0) + 1;
       if (r.isCorrect) {
@@ -168,8 +179,7 @@ class _ScoreScreenState extends State<ScoreScreen>
         ..sort(),
     ];
 
-    // ===== 上段：総合成績 と 出題形式別（カード化 + アニメーション） =====
-
+    // ===== 上段：国試スコアカード + テキスト統計カード =====
     final totalStat = _StatCard(
       title: '総合成績',
       lines: [
@@ -192,7 +202,6 @@ class _ScoreScreenState extends State<ScoreScreen>
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 420;
         if (isNarrow) {
-          // スマホ幅ではカードを横いっぱいに広げる
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -202,7 +211,6 @@ class _ScoreScreenState extends State<ScoreScreen>
             ],
           );
         } else {
-          // 横：Row内でだけExpandedを使う
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -215,13 +223,15 @@ class _ScoreScreenState extends State<ScoreScreen>
       },
     );
 
-    // ===== 成績推移グラフ（棒グラフ） =====
     final trendCard = _buildTrendCard(items);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 上部カードをフェード＋スライド表示
+        // ★ 国試スコア（目安）カード
+        ExamScoreSummaryCard(records: items),
+        const SizedBox(height: 16),
+
         FadeTransition(
           opacity: _animController,
           child: SlideTransition(
@@ -244,16 +254,13 @@ class _ScoreScreenState extends State<ScoreScreen>
         ] else
           const SizedBox(height: 24),
 
-        // ===== 分野別成績（カード + 折りたたみ） =====
-        Text(
-          '分野別成績',
-          style: theme.textTheme.titleMedium,
-        ),
+        // ===== 分野別成績 =====
+        Text('分野別成績', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         _expansionCard(
           title: '正答率（分野別）',
           child: MiniBarChart(
-            title: null, // タイトルは上のテキストで表示
+            title: null,
             items: buildBarItemsFromStatMap(byDomain),
             barHeight: 20,
             maxItems: 10,
@@ -262,11 +269,8 @@ class _ScoreScreenState extends State<ScoreScreen>
 
         const SizedBox(height: 16),
 
-        // ===== 出題形式 × 分野（カード + 折りたたみ） =====
-        Text(
-          '出題形式 × 分野',
-          style: theme.textTheme.titleMedium,
-        ),
+        // ===== 出題形式 × 分野 =====
+        Text('出題形式 × 分野', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         _expansionCard(
           title: '出題形式ごとの分野別正答率',
@@ -303,7 +307,6 @@ class _ScoreScreenState extends State<ScoreScreen>
   Widget? _buildTrendCard(List<AnswerRecord> items) {
     if (items.isEmpty) return null;
 
-    // 日付ごとに集計
     final buckets = <DateTime, _TrendBucket>{};
     for (final r in items) {
       final day = DateTime(r.ts.year, r.ts.month, r.ts.day);
@@ -359,7 +362,7 @@ class _ScoreScreenState extends State<ScoreScreen>
               crossAxisAlignment: CrossAxisAlignment.end,
               children: points.map((p) {
                 final value = p.accuracy.clamp(0.0, 1.0);
-                final heightFactor = value == 0 ? 0.05 : value; // 0%でも少し表示
+                final heightFactor = value == 0 ? 0.05 : value;
                 return Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -384,9 +387,7 @@ class _ScoreScreenState extends State<ScoreScreen>
                         const SizedBox(height: 4),
                         Text(
                           p.label,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 10,
-                          ),
+                          style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
                         ),
                         Text(
                           '${(p.accuracy * 100).toStringAsFixed(0)}%',
@@ -454,10 +455,7 @@ class _ScoreScreenState extends State<ScoreScreen>
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 16),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
           initiallyExpanded: false,
           children: [
             const SizedBox(height: 8),
@@ -469,12 +467,8 @@ class _ScoreScreenState extends State<ScoreScreen>
   }
 }
 
-/// 上部のテキスト統計カード
 class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.title,
-    required this.lines,
-  });
+  const _StatCard({required this.title, required this.lines});
 
   final String title;
   final List<String> lines;
@@ -510,7 +504,6 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-/// 日毎の正答率（内部用）
 class _TrendBucket {
   int total = 0;
   int correct = 0;

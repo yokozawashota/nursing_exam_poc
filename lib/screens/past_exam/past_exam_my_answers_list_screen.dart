@@ -1,0 +1,623 @@
+// lib/screens/past_exam/past_exam_my_answers_list_screen.dart
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../../models/nurai_question.dart';
+import '../../models/past_exam_history.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/base_scaffold.dart';
+import 'past_exam_my_answer_detail_screen.dart';
+import 'past_exam_question_screen.dart';
+
+enum PastExamCorrectFilter {
+  all,
+  correct,
+  wrong,
+}
+
+enum PastExamKindFilter {
+  all,
+  hisshu,
+  ippan,
+  situation,
+}
+
+class PastExamMyAnswersListScreen extends StatefulWidget {
+  const PastExamMyAnswersListScreen({
+    super.key,
+    required this.examId,
+    required this.examTitle,
+    required this.totalQuestions,
+  });
+
+  final String examId;
+  final String examTitle;
+  final int totalQuestions;
+
+  @override
+  State<PastExamMyAnswersListScreen> createState() =>
+      _PastExamMyAnswersListScreenState();
+}
+
+class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScreen> {
+  // ===== ちらつき対策：TextFieldの状態保持 =====
+  late final TextEditingController _searchController;
+  late final FocusNode _searchFocusNode;
+  Timer? _debounce;
+
+  // 検索キーワード（反映用）
+  String _searchKeyword = '';
+
+  // フィルタ
+  PastExamCorrectFilter _correctFilter = PastExamCorrectFilter.all;
+  PastExamKindFilter _kindFilter = PastExamKindFilter.all;
+
+  // ===== 読み込み（buildでやらない） =====
+  bool _loading = true;
+  List<PastExamAnswerRecord> _allRecords = const [];
+
+  late final VoidCallback _versionListener;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _searchController = TextEditingController();
+    _searchFocusNode = FocusNode();
+
+    _versionListener = () {
+      _load();
+    };
+    PastExamHistory.instance.versionListenable.addListener(_versionListener);
+
+    _load();
+  }
+
+  @override
+  void dispose() {
+    PastExamHistory.instance.versionListenable.removeListener(_versionListener);
+    _debounce?.cancel();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (!mounted) return;
+    setState(() => _loading = true);
+
+    try {
+      final list = await PastExamHistory.instance.recordsForExam(widget.examId);
+      if (!mounted) return;
+      setState(() {
+        _allRecords = list;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _allRecords = const [];
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _reloadPull() async {
+    await _load();
+  }
+
+  // ---- kind推測（partKindが空でも label から拾う） ----
+  String _inferPartKindFromLabel(String label) {
+    final t = label.trim();
+    if (t.contains('状況')) return '状況設定';
+    if (t.contains('一般')) return '一般';
+    if (t.contains('必修')) return '必修';
+    return '';
+  }
+
+  String _normalizedKind(PastExamAnswerRecord r) {
+    final raw = (r.partKind ?? '').trim();
+    if (raw.isNotEmpty) return raw;
+    return _inferPartKindFromLabel(r.partLabel ?? '');
+  }
+
+  // ===== フィルタ適用 =====
+  bool _matchesCorrect(PastExamAnswerRecord r) {
+    switch (_correctFilter) {
+      case PastExamCorrectFilter.all:
+        return true;
+      case PastExamCorrectFilter.correct:
+        return r.isCorrect;
+      case PastExamCorrectFilter.wrong:
+        return !r.isCorrect;
+    }
+  }
+
+  bool _matchesKind(PastExamAnswerRecord r) {
+    final kind = _normalizedKind(r);
+    switch (_kindFilter) {
+      case PastExamKindFilter.all:
+        return true;
+      case PastExamKindFilter.hisshu:
+        return kind.contains('必修');
+      case PastExamKindFilter.ippan:
+        return kind.contains('一般');
+      case PastExamKindFilter.situation:
+        return kind.contains('状況');
+    }
+  }
+
+  bool _matchesSearch(PastExamAnswerRecord r, String q) {
+    final needle = q.trim();
+    if (needle.isEmpty) return true;
+
+    final hay = <String>[
+      r.questionKey,
+      r.examTitle ?? '',
+      r.partLabel ?? '',
+      r.partKind ?? '',
+      r.questionText ?? '',
+      ...((r.choices ?? const <String, String>{}).values),
+      ...((r.selectedLabels ?? const <String>[])),
+      ...((r.correctLabels ?? const <String>[])),
+    ].join('\n');
+
+    return hay.contains(needle);
+  }
+
+  List<PastExamAnswerRecord> _applyFilter(List<PastExamAnswerRecord> items) {
+    var list = List<PastExamAnswerRecord>.from(items);
+
+    list = list.where((r) {
+      return _matchesCorrect(r) && _matchesKind(r) && _matchesSearch(r, _searchKeyword);
+    }).toList();
+
+    // recordsForExam は「新しい順」で返ってくる前提（PastExamHistory側）
+    return list;
+  }
+
+  double _accuracyOf(Iterable<PastExamAnswerRecord> items) {
+    if (items.isEmpty) return 0.0;
+    final correct = items.where((r) => r.isCorrect).length;
+    return correct / items.length;
+  }
+
+  String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
+
+  String _formatDateTime(DateTime dt) {
+    final y = dt.year.toString().padLeft(4, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    return '$y/$m/$d $hh:$mm';
+  }
+
+  Future<bool?> _confirmResetDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('解答履歴をリセットしますか？'),
+        content: Text(
+          '${widget.examTitle} の解答履歴がすべて削除されます。\n'
+              'この操作は元に戻せません。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'リセット',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================
+  // 不正解だけ解き直す（履歴→NuraiQuestion 復元）
+  // ============================
+
+  NuraiQuestion _toQuestionFromRecord(PastExamAnswerRecord r) {
+    final choices = r.choices ?? const <String, String>{};
+    final correct = r.correctLabels ?? const <String>[];
+
+    // 推定 kind
+    final kind = choices.isEmpty
+        ? 'input'
+        : (correct.length >= 2 ? 'multiple' : 'single');
+
+    // requiredCorrectCount は必須なので、正答数から推定（最低1）
+    final required = (correct.isNotEmpty ? correct.length : 1);
+
+    return NuraiQuestion(
+      questionText: (r.questionText ?? '').isNotEmpty ? r.questionText! : r.questionKey,
+      choices: choices,
+      correctLabels: correct,
+      rationales: r.rationales,
+      explanation: r.explanation,
+      questionKind: kind,
+      requiredCorrectCount: required,
+      difficulty: '',
+      domain: '',
+      major: '',
+      mid: null,
+      topic: null,
+      sourceType: 'past_exam',
+      sourceTag: r.questionKey, // ここはユニークならOK
+      imagePath: r.imagePath,
+      imageRequired: (r.imagePath ?? '').trim().isNotEmpty,
+    );
+  }
+
+  void _retryWrongOnly(List<PastExamAnswerRecord> all) {
+    final wrong = all.where((r) => !r.isCorrect).toList();
+
+    if (wrong.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('不正解の履歴がありません')),
+      );
+      return;
+    }
+
+    final qs = wrong.map(_toQuestionFromRecord).toList();
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PastExamQuestionScreen(
+          examTitle: '${widget.examTitle}（不正解の復習）',
+          partLabel: '不正解のみ',
+          questions: qs,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final all = _allRecords;
+    final items = _applyFilter(all);
+
+    final correctCount = all.where((r) => r.isCorrect).length;
+    final wrongCount = all.length - correctCount;
+    final acc = _accuracyOf(all);
+
+    final hasSituation = all.any((r) => _normalizedKind(r).contains('状況'));
+
+    return BaseScaffold(
+      title: widget.examTitle,
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+        onRefresh: _reloadPull,
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
+          itemCount: (all.isEmpty ? 1 : items.length + 1),
+          separatorBuilder: (_, index) {
+            if (index == 0) return const SizedBox(height: 8);
+            return const Divider(height: 0);
+          },
+          itemBuilder: (context, index) {
+            // ===== ヘッダー（常に表示） =====
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _headerCard(
+                      theme,
+                      total: all.length,
+                      correct: correctCount,
+                      wrong: wrongCount,
+                      accuracy: acc,
+                      onRetryWrong: wrongCount == 0 ? null : () => _retryWrongOnly(all),
+                      onReset: all.isEmpty
+                          ? null
+                          : () async {
+                        final ok = await _confirmResetDialog(context);
+                        if (ok != true) return;
+                        await PastExamHistory.instance.resetExam(widget.examId);
+
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${widget.examTitle} の解答履歴をリセットしました'),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _searchAndFilterBar(
+                      theme,
+                      hasSituation: hasSituation,
+                    ),
+                    if (all.isEmpty) ...[
+                      const SizedBox(height: 20),
+                      Center(
+                        child: Text(
+                          'まだ解答履歴がありません',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ] else if (items.isEmpty) ...[
+                      const SizedBox(height: 20),
+                      Center(
+                        child: Text(
+                          '検索条件に一致する解答履歴が見つかりませんでした',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          '表示：${items.length}件',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }
+
+            // データなしならヘッダーのみ
+            if (all.isEmpty || items.isEmpty) {
+              return const SizedBox.shrink();
+            }
+
+            final r = items[index - 1];
+            return _buildRow(context, theme, r);
+          },
+        ),
+      ),
+    );
+  }
+
+  // ===== UI部品 =====
+
+  Widget _headerCard(
+      ThemeData theme, {
+        required int total,
+        required int correct,
+        required int wrong,
+        required double accuracy,
+        required VoidCallback? onRetryWrong,
+        required VoidCallback? onReset,
+      }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1段目：タイトル + リセット
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '解答履歴（過去問）',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '解答数：$total 問   /   正答率：${_pct(accuracy)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '内訳：正解 $correct ・ 不正解 $wrong',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton.icon(
+                onPressed: onReset,
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                ),
+                icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                label: const Text('リセット'),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // 2段目：不正解だけ解き直す（主張しすぎない）
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onRetryWrong,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('不正解だけ解き直す'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _searchAndFilterBar(
+      ThemeData theme, {
+        required bool hasSituation,
+      }) {
+    return Column(
+      children: [
+        // 検索（debounceで“止まった瞬間だけ反映”）
+        TextField(
+          controller: _searchController,
+          focusNode: _searchFocusNode,
+          decoration: InputDecoration(
+            hintText: '問題文・選択肢・パート名などで検索',
+            prefixIcon: const Icon(Icons.search),
+            isDense: true,
+            border: const OutlineInputBorder(),
+            suffixIcon: _searchController.text.trim().isEmpty
+                ? null
+                : IconButton(
+              onPressed: () {
+                _debounce?.cancel();
+                _searchController.clear();
+                setState(() => _searchKeyword = '');
+              },
+              icon: const Icon(Icons.clear_rounded),
+            ),
+          ),
+          onChanged: (value) {
+            _debounce?.cancel();
+            _debounce = Timer(const Duration(milliseconds: 180), () {
+              if (!mounted) return;
+              setState(() {
+                _searchKeyword = value;
+              });
+            });
+          },
+        ),
+        const SizedBox(height: 8),
+
+        Row(
+          children: [
+            // ===== 種別（左） =====
+            Expanded(
+              child: DropdownButtonFormField<PastExamKindFilter>(
+                value: _kindFilter,
+                decoration: const InputDecoration(
+                  labelText: '種別',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  const DropdownMenuItem(
+                    value: PastExamKindFilter.all,
+                    child: Text('全パート'),
+                  ),
+                  const DropdownMenuItem(
+                    value: PastExamKindFilter.hisshu,
+                    child: Text('必修のみ'),
+                  ),
+                  const DropdownMenuItem(
+                    value: PastExamKindFilter.ippan,
+                    child: Text('一般のみ'),
+                  ),
+                  if (hasSituation)
+                    const DropdownMenuItem(
+                      value: PastExamKindFilter.situation,
+                      child: Text('状況設定のみ'),
+                    ),
+                ],
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _kindFilter = v);
+                },
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            // ===== 正誤（右） =====
+            Expanded(
+              child: DropdownButtonFormField<PastExamCorrectFilter>(
+                value: _correctFilter,
+                decoration: const InputDecoration(
+                  labelText: '正誤',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: PastExamCorrectFilter.all,
+                    child: Text('すべて'),
+                  ),
+                  DropdownMenuItem(
+                    value: PastExamCorrectFilter.correct,
+                    child: Text('正解のみ'),
+                  ),
+                  DropdownMenuItem(
+                    value: PastExamCorrectFilter.wrong,
+                    child: Text('不正解のみ'),
+                  ),
+                ],
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _correctFilter = v);
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRow(BuildContext context, ThemeData theme, PastExamAnswerRecord r) {
+    final kind = _normalizedKind(r);
+    final part = (r.partLabel ?? '').trim();
+    final no = r.questionNo ?? 0;
+    final when = _formatDateTime(r.ts);
+
+    final title = (r.questionText ?? '').trim();
+    final showTitle = title.isNotEmpty ? title : r.questionKey;
+
+    final leadingIcon = Icon(
+      r.isCorrect ? Icons.check_circle_outline : Icons.cancel_outlined,
+      color: r.isCorrect ? Colors.green[600] : Colors.red[500],
+    );
+
+    final meta = [
+      if (kind.isNotEmpty) kind,
+      if (part.isNotEmpty) part,
+      if (no > 0) '第$no問',
+    ].join(' ・ ');
+
+    return ListTile(
+      leading: leadingIcon,
+      title: Text(
+        showTitle,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text('$when${meta.isEmpty ? '' : ' ・ $meta'}'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PastExamMyAnswerDetailScreen(record: r),
+          ),
+        );
+      },
+    );
+  }
+}

@@ -8,6 +8,7 @@ import '../screens/settings_screen.dart';
 import '../screens/notice_list_screen.dart';
 import '../screens/mock_exam_config_screen.dart';
 import '../screens/ai_analysis_screen.dart';
+import '../screens/past_exam/past_exam_year_list_screen.dart';
 
 import '../theme/app_theme.dart';
 import '../services/notice_service.dart';
@@ -31,7 +32,7 @@ class _BottomNavShellState extends State<BottomNavShell> {
     super.initState();
 
     _pages = <Widget>[
-      const AiAnalysisScreen(),     // 0: 学習分析
+      const AiAnalysisScreen(),           // 0: 学習分析
       const ScoreScreen(),               // 1: スコア
       _HomeTab(onSelectTab: _setIndex),  // 2: ホーム
       const AnswerHistoryScreen(),       // 3: 履歴
@@ -181,48 +182,54 @@ class _HomeTab extends StatelessWidget {
                   ),
 
                   // ==== 通知ベル（未読バッジ付き）====
-                  FutureBuilder<int>(
-                    future: NoticeService.unreadCount(),
+                  FutureBuilder<Notice?>(
+                    future: NoticeService.latest(),
                     builder: (context, snap) {
-                      final unread = snap.data ?? 0;
+                      return FutureBuilder<int>(
+                        future: NoticeService.unreadCount(),
+                        builder: (context, unreadSnap) {
+                          final unread = unreadSnap.data ?? 0;
 
-                      return Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.notifications_none_rounded,
-                              size: 30,
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const NoticeListScreen(),
+                          return Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.notifications_none_rounded,
+                                  size: 30,
                                 ),
-                              );
-                            },
-                          ),
-                          if (unread > 0)
-                            Positioned(
-                              right: 4,
-                              top: 4,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  unread.toString(),
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                      const NoticeListScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              if (unread > 0)
+                                Positioned(
+                                  right: 4,
+                                  top: 4,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      unread.toString(),
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                        ],
+                            ],
+                          );
+                        },
                       );
                     },
                   ),
@@ -309,6 +316,26 @@ class _HomeTab extends StatelessWidget {
                   },
                 ),
               ),
+
+              const SizedBox(height: 12),
+
+              // ==== 過去問CTA（第113回 必修 午前）====
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton.icon(
+                style: AppStyles.outlinedButton,
+                icon: const Icon(Icons.menu_book_rounded),
+                label: const Text('年度別過去問'),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PastExamYearListScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
 
               const SizedBox(height: 20),
 

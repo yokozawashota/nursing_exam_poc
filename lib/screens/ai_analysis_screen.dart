@@ -31,8 +31,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
 
   String _selectedDomain = '必修';
 
-  /// 必修の科目（大項目）の表示順（番号順）＋表示ラベル
-  /// ※先頭の数字は表示せず、このリストの順番で固定表示する
   static const List<String> _requiredMajorOrder = [
     '健康の定義と理解',
     '健康に影響する要因',
@@ -52,14 +50,8 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
     '診療に伴う看護技術',
   ];
 
-  /// 分野ごとの「大項目マスタ」
-  /// - キー: 分野名（DomainAnalysis.domainOptions と同じラベル）
-  /// - 値: その分野に属する科目（大項目）の表示順リスト
   static const Map<String, List<String>> _domainMajorOrderMap = {
     '必修': _requiredMajorOrder,
-    // --------------------------------------------------
-    // ▼ 人体の構造と機能（済）
-    // --------------------------------------------------
     '人体の構造と機能': [
       '細胞と組織',
       '生体リズムと内部環境の恒常性',
@@ -77,10 +69,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       '体温調節',
       '内分泌系',
     ],
-
-    // --------------------------------------------------
-    // ▼ 疾病の成り立ちと回復の促進
-    // --------------------------------------------------
     '疾病の成り立ちと回復の促進': [
       '疾病の成り立ち総論',
       '感染症の成り立ちと回復',
@@ -98,10 +86,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       '皮膚疾患',
       'その他の疾患と回復',
     ],
-
-    // --------------------------------------------------
-    // ▼ 健康支援と社会保障制度
-    // --------------------------------------------------
     '健康支援と社会保障制度': [
       '保健・医療・福祉制度の概要',
       '社会保障制度',
@@ -113,10 +97,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       '保健活動と健康増進',
       '生活習慣病予防',
     ],
-
-    // --------------------------------------------------
-    // ▼ 成人看護学
-    // --------------------------------------------------
     '成人看護学': [
       '急性期看護総論',
       '慢性期看護総論',
@@ -134,10 +114,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       '皮膚疾患の看護',
       'その他成人期の看護',
     ],
-
-    // --------------------------------------------------
-    // ▼ 老年看護学
-    // --------------------------------------------------
     '老年看護学': [
       '老年期の発達と特徴',
       '老年期の健康課題',
@@ -148,10 +124,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       '家族支援と地域支援',
       '介護予防と多職種連携',
     ],
-
-    // --------------------------------------------------
-    // ▼ 小児看護学
-    // --------------------------------------------------
     '小児看護学': [
       '小児の成長と発達',
       '小児の健康と疾病',
@@ -161,10 +133,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       '学童・思春期の健康課題',
       '家族看護と育児支援',
     ],
-
-    // --------------------------------------------------
-    // ▼ 母性看護学
-    // --------------------------------------------------
     '母性看護学': [
       '女性の生理と健康',
       '妊娠期の看護',
@@ -174,10 +142,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       '母乳育児支援',
       '女性の健康問題',
     ],
-
-    // --------------------------------------------------
-    // ▼ 精神看護学
-    // --------------------------------------------------
     '精神看護学': [
       '精神保健の基礎',
       '主要な精神疾患',
@@ -188,10 +152,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       '家族支援',
       '地域精神看護',
     ],
-
-    // --------------------------------------------------
-    // ▼ 在宅看護論／地域・在宅看護論
-    // --------------------------------------------------
     '在宅看護論／地域・在宅看護論': [
       '在宅療養の基礎',
       '在宅ケアマネジメント',
@@ -201,10 +161,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       '地域包括ケアと多職種連携',
       '在宅での疾病管理',
     ],
-
-    // --------------------------------------------------
-    // ▼ 看護の統合と実践
-    // --------------------------------------------------
     '看護の統合と実践': [
       '看護過程の統合',
       '臨床判断と看護診断',
@@ -228,22 +184,30 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
     await _future;
   }
 
-  // ===== 共通の集計ロジック =====
+  // =========================
+  // ★ 追加：AI生成のみ抽出
+  // =========================
+  List<AnswerRecord> _aiOnly(List<AnswerRecord> all) {
+    return all.where((r) {
+      // sourceType が無い/古いデータでも落ちないように安全に扱う
+      final st = (r.sourceType ?? 'ai').trim();
+      return st.isEmpty || st == 'ai';
+    }).toList();
+  }
 
+  // ===== 共通の集計ロジック =====
   double _accuracyOf(List<AnswerRecord> items) {
     if (items.isEmpty) return 0.0;
     final correct = items.where((r) => r.isCorrect).length;
     return correct / items.length;
   }
 
-  /// 解答履歴を「必修＋各分野」ごとに集計（DomainAnalysis に委譲）
   Map<String, DomainAgg> _aggregateByDomain(List<AnswerRecord> items) {
     return DomainAnalysis.aggregateByDomain(items);
   }
 
   String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
 
-  /// 「1. ◯◯◯」のような major 名から数字部分を取り除いた表示ラベルを返す
   String _normalizeMajorLabel(String raw) {
     final trimmed = raw.trim();
     final m = RegExp(r'^\d+\.\s*(.*)$').firstMatch(trimmed);
@@ -253,7 +217,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
     return trimmed;
   }
 
-  /// 【これからの学び方の提案】内の「1. 〜 2. 〜 3. 〜」を行ごとに分けて見やすくする
   String _formatStudyAdvice(String raw) {
     var t = raw.trim();
     for (final n in ['2', '3', '4', '5']) {
@@ -261,8 +224,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
     }
     return t;
   }
-
-  // ===== AI分析 → 履歴保存 → 詳細画面へ遷移 =====
 
   Future<void> _runOverallAnalysis(List<AnswerRecord> records) async {
     if (records.isEmpty) return;
@@ -306,16 +267,11 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
         SnackBar(content: Text('AI分析中にエラーが発生しました：$e')),
       );
     } finally {
-      if (mounted) {
-        setState(() => _isAnalyzingOverall = false);
-      }
+      if (mounted) setState(() => _isAnalyzingOverall = false);
     }
   }
 
-  Future<void> _runDomainAnalysis(
-      List<AnswerRecord> records,
-      String domainKey,
-      ) async {
+  Future<void> _runDomainAnalysis(List<AnswerRecord> records, String domainKey) async {
     final byDomain = _aggregateByDomain(records);
     final agg = byDomain[domainKey] ?? DomainAgg.empty(domainKey);
 
@@ -326,17 +282,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       return;
     }
 
-    if (agg.total < 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '「$domainKey」のAI分析には、少なくとも5問以上の解答があると安定します。（現在: ${agg.total}問）',
-          ),
-        ),
-      );
-    }
-
-    // DomainAnalysis.domainKeyOfRecord を使って対象分野だけを抽出
     final filtered = records
         .where((r) => DomainAnalysis.domainKeyOfRecord(r) == domainKey)
         .toList();
@@ -381,30 +326,22 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
         SnackBar(content: Text('分野別AI分析中にエラーが発生しました：$e')),
       );
     } finally {
-      if (mounted) {
-        setState(() => _isAnalyzingDomain = false);
-      }
+      if (mounted) setState(() => _isAnalyzingDomain = false);
     }
   }
 
-  /// AiAnalysisResult から詳細画面用の本文を組み立てる
-  /// - 見出しと「◯%（◯/◯問）」はここで生成
-  /// - その下の本文だけを AI に書いてもらう
   String _buildFullBody({
     required AiAnalysisResult result,
-    required String scope, // "overall" or "domain"
-    required String targetLabel, // overall: "全体", domain: 分野名
+    required String scope,
+    required String targetLabel,
     required List<AnswerRecord> sourceRecords,
   }) {
     final buf = StringBuffer();
 
-    // 共通ヘルパ
     int _countCorrect(Iterable<AnswerRecord> items) =>
         items.where((r) => r.isCorrect).length;
 
-    // ===== 全体スコープ =====
     if (scope == 'overall') {
-      // 出題形式別
       final byDifficulty = <String, List<AnswerRecord>>{};
       for (final r in sourceRecords) {
         final key = (r.difficulty.isEmpty) ? '未分類' : r.difficulty.trim();
@@ -413,12 +350,7 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
 
       buf.writeln('【出題形式別の成績】');
       final orderedKeys = <String>[
-        '必修問題',
-        '必修',
-        '一般問題',
-        '一般',
-        '状況設定問題',
-        '状況設定',
+        '必修問題', '必修', '一般問題', '一般', '状況設定問題', '状況設定',
       ];
       final already = <String>{};
 
@@ -448,16 +380,13 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       buf.writeln(result.difficultyComment);
       buf.writeln();
 
-      // 分野別の成績概要
       final byDomain = _aggregateByDomain(sourceRecords);
 
       buf.writeln('【分野別の成績概要】');
       for (final name in _domainOptions) {
         final agg = byDomain[name] ?? DomainAgg.empty(name);
         if (agg.total == 0) continue;
-        buf.writeln(
-          '・$name：${_pct(agg.rate)}（${agg.correct}/${agg.total}問）',
-        );
+        buf.writeln('・$name：${_pct(agg.rate)}（${agg.correct}/${agg.total}問）');
       }
 
       buf.writeln(result.domainComment);
@@ -472,20 +401,15 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       return buf.toString().trimRight();
     }
 
-    // ===== 分野スコープ（必修や各分野） =====
     final totalInDomain = sourceRecords.length;
     final correctInDomain = _countCorrect(sourceRecords);
-    final rateInDomain =
-    totalInDomain == 0 ? 0.0 : correctInDomain / totalInDomain;
+    final rateInDomain = totalInDomain == 0 ? 0.0 : correctInDomain / totalInDomain;
 
     buf.writeln('【分野別の成績】');
-    buf.writeln(
-      '・$targetLabel：${_pct(rateInDomain)}（$correctInDomain/$totalInDomain問）',
-    );
+    buf.writeln('・$targetLabel：${_pct(rateInDomain)}（$correctInDomain/$totalInDomain問）');
     buf.writeln(result.difficultyComment);
     buf.writeln();
 
-    // major（科目）別に集計（キーは「数字除去後のラベル」で統一）
     final byMajor = <String, List<AnswerRecord>>{};
     for (final r in sourceRecords) {
       final raw = (r.major ?? '').trim();
@@ -496,11 +420,9 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
 
     buf.writeln('【科目ごとの成績】');
 
-    // この分野に対してあらかじめマスタが定義されているかどうか
     final predefinedMajors = _domainMajorOrderMap[targetLabel];
 
     if (predefinedMajors != null && predefinedMajors.isNotEmpty) {
-      // マスタにある科目はすべて表示（0/0問も含む）
       for (final label in predefinedMajors) {
         final items = byMajor[label] ?? const <AnswerRecord>[];
         final total = items.length;
@@ -509,31 +431,7 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
         buf.writeln('・$label：${_pct(rate)}（$correct/$total問）');
       }
 
-      // マスタ外のラベルがもしあれば、最後におまけとして昇順に表示
-      final extraKeys = byMajor.keys
-          .where((k) => !predefinedMajors.contains(k))
-          .toList()
-        ..sort();
-      for (final label in extraKeys) {
-        final items = byMajor[label] ?? const <AnswerRecord>[];
-        final total = items.length;
-        final correct = _countCorrect(items);
-        final rate = total == 0 ? 0.0 : correct / total;
-        buf.writeln('・$label：${_pct(rate)}（$correct/$total問）');
-      }
-    } else if (targetLabel == '必修') {
-      // safety: 万一マスタ Map から外れても、旧来ロジックで必修を表示
-      for (final label in _requiredMajorOrder) {
-        final items = byMajor[label] ?? const <AnswerRecord>[];
-        final total = items.length;
-        final correct = _countCorrect(items);
-        final rate = total == 0 ? 0.0 : correct / total;
-        buf.writeln('・$label：${_pct(rate)}（$correct/$total問）');
-      }
-      final extraKeys = byMajor.keys
-          .where((k) => !_requiredMajorOrder.contains(k))
-          .toList()
-        ..sort();
+      final extraKeys = byMajor.keys.where((k) => !predefinedMajors.contains(k)).toList()..sort();
       for (final label in extraKeys) {
         final items = byMajor[label] ?? const <AnswerRecord>[];
         final total = items.length;
@@ -542,9 +440,7 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
         buf.writeln('・$label：${_pct(rate)}（$correct/$total問）');
       }
     } else {
-      // マスタがない分野は従来通り「解答がある科目だけ／科目名の昇順」で表示
-      final majorEntries = byMajor.entries.toList()
-        ..sort((a, b) => a.key.compareTo(b.key));
+      final majorEntries = byMajor.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
       for (final e in majorEntries) {
         final items = e.value;
         if (items.isEmpty) continue;
@@ -566,8 +462,6 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
 
     return buf.toString().trimRight();
   }
-
-  // ===== UI =====
 
   @override
   Widget build(BuildContext context) {
@@ -605,7 +499,13 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
             );
           }
 
-          final records = snap.data ?? const <AnswerRecord>[];
+          final allRecords = snap.data ?? const <AnswerRecord>[];
+
+          // =========================
+          // ★ ここが今回の本丸：AI生成だけに限定
+          // =========================
+          final records = _aiOnly(allRecords);
+
           final total = records.length;
           final accAll = _accuracyOf(records);
 
@@ -640,17 +540,12 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor:
-                              AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                               : const Icon(Icons.auto_awesome_rounded),
                           label: Text(
-                            _isAnalyzingOverall
-                                ? '全体を分析中...'
-                                : 'NurAIに全体の学習状況を分析してもらう',
+                            _isAnalyzingOverall ? '全体を分析中...' : 'NurAIに全体の学習状況を分析してもらう',
                           ),
                           onPressed: _isAnalyzingOverall || records.isEmpty
                               ? null
@@ -668,14 +563,12 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
                       const SizedBox(height: 24),
                       Text(
                         '分野ごとのAI分析',
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         '必修や成人看護学など、特定の分野にフォーカスして分析します。',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: AppColors.textSecondary),
+                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -690,16 +583,10 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
                                 isDense: true,
                               ),
                               items: _domainOptions
-                                  .map(
-                                    (d) => DropdownMenuItem<String>(
-                                  value: d,
-                                  child: Text(
-                                    d,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
+                                  .map((d) => DropdownMenuItem<String>(
+                                value: d,
+                                child: Text(d, maxLines: 1, overflow: TextOverflow.ellipsis),
+                              ))
                                   .toList(),
                               onChanged: (val) {
                                 if (val == null) return;
@@ -712,26 +599,18 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
                             height: 52,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 14),
                               ),
                               onPressed: _isAnalyzingDomain || records.isEmpty
                                   ? null
-                                  : () => _runDomainAnalysis(
-                                records,
-                                _selectedDomain,
-                              ),
+                                  : () => _runDomainAnalysis(records, _selectedDomain),
                               child: _isAnalyzingDomain
                                   ? const SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor:
-                                  AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                 ),
                               )
                                   : const Text('分野を分析'),
@@ -744,15 +623,13 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
                       const SizedBox(height: 16),
                       if (records.isEmpty)
                         Text(
-                          'まだ解答履歴がありません。\nまずはホーム画面から「問題を生成する」や「模試モード」で、いくつか問題を解いてみましょう。',
-                          style: theme.textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.textSecondary),
+                          'AI生成問題の解答履歴がまだありません。\nホーム画面から「問題を生成する」や「模試モード」で、いくつかAI生成問題を解いてみましょう。',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
                         )
                       else
                         Text(
                           '※ 解けば解くほど、NurAIの分析はあなたに最適化されていきます。',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: AppColors.textSecondary),
+                          style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                         ),
                     ],
                   ),
@@ -791,8 +668,7 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
               children: [
                 Text(
                   '解けば解くほど育つ、あなた専用のAIコーチ',
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -808,8 +684,7 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
                   total == 0
                       ? 'まずは10〜20問程度を目安に、いろいろな分野の問題を解いてみましょう。'
                       : 'すでに $total 問のデータが蓄積されています。解けば解くほど、より精度の高い分析ができるようになります。',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -865,23 +740,11 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
-          ),
+          Text(title, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: 4),
-          Text(
-            main,
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
+          Text(main, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text(
-            sub,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
-          ),
+          Text(sub, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
         ],
       ),
     );
@@ -890,9 +753,7 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
   Widget _domainCards(Map<String, DomainAgg> agg) {
     final theme = Theme.of(context);
 
-    final list = _domainOptions
-        .map((name) => agg[name] ?? DomainAgg.empty(name))
-        .toList();
+    final list = _domainOptions.map((name) => agg[name] ?? DomainAgg.empty(name)).toList();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -910,9 +771,7 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
               width: itemWidth,
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  setState(() => _selectedDomain = a.name);
-                },
+                onTap: () => setState(() => _selectedDomain = a.name),
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
                   decoration: BoxDecoration(
@@ -931,20 +790,16 @@ class _AiAnalysisScreenState extends State<AiAnalysisScreen> {
                         a.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '回答数：${a.total}問',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: AppColors.textSecondary),
+                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                       ),
                       Text(
                         '正答率：${_pct(a.rate)}',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: AppColors.textSecondary),
+                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
