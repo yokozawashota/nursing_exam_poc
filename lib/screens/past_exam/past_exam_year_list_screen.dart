@@ -2,10 +2,12 @@
 import 'package:flutter/material.dart';
 
 import '../../models/past_exam_history.dart';
+import '../../services/past_exam_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/base_scaffold.dart';
 import 'past_exam_list_screen.dart';
 import 'past_exam_my_answers_year_list_screen.dart';
+import 'past_exam_years.dart';
 
 /// 年度別の過去問一覧（「第113回（2024年）」など）
 class PastExamYearListScreen extends StatelessWidget {
@@ -15,12 +17,8 @@ class PastExamYearListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // ★ ここに年度追加していく
-    final years = <_PastExamYearMeta>[
-      const _PastExamYearMeta(id: '111', title: '第111回（2022年）', totalQuestions: 240),
-      const _PastExamYearMeta(id: '113', title: '第113回（2024年）', totalQuestions: 240),
-    ];
-
+    // ✅ 年度追加はここではなく past_exam_years.dart に集約
+    final years = pastExamYears;
     final examIds = years.map((e) => e.id).toList();
 
     return BaseScaffold(
@@ -30,8 +28,8 @@ class PastExamYearListScreen extends StatelessWidget {
         builder: (context, _, __) {
           return FutureBuilder<Map<String, int>>(
             future: PastExamHistory.instance.solvedCountMap(examIds),
-            builder: (context, snap) {
-              final solvedMap = snap.data ?? const <String, int>{};
+            builder: (context, solvedSnap) {
+              final solvedMap = solvedSnap.data ?? const <String, int>{};
 
               return ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -69,13 +67,17 @@ class PastExamYearListScreen extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(16),
-                        onTap: () {
+                        onTap: () async {
+                          // ✅ 総問題数は assets から自動で算出
+                          final total = await PastExamRepository.instance.totalQuestionsOfExam(y.id);
+
+                          if (!context.mounted) return;
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => PastExamListScreen(
                                 examId: y.id,
                                 examTitle: y.title,
-                                totalQuestions: y.totalQuestions,
+                                totalQuestions: total,
                               ),
                             ),
                           );
@@ -101,7 +103,7 @@ class PastExamYearListScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '解答済：$solved問／${y.totalQuestions}問',
+                                      '解答済：$solved問',
                                       style: theme.textTheme.bodySmall?.copyWith(
                                         color: AppColors.textSecondary,
                                       ),
@@ -120,7 +122,7 @@ class PastExamYearListScreen extends StatelessWidget {
                     );
                   }).toList(),
 
-                  if (snap.connectionState == ConnectionState.waiting)
+                  if (solvedSnap.connectionState == ConnectionState.waiting)
                     const Padding(
                       padding: EdgeInsets.only(top: 8),
                       child: Center(child: CircularProgressIndicator()),
@@ -133,16 +135,4 @@ class PastExamYearListScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PastExamYearMeta {
-  final String id;
-  final String title;
-  final int totalQuestions;
-
-  const _PastExamYearMeta({
-    required this.id,
-    required this.title,
-    required this.totalQuestions,
-  });
 }

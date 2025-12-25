@@ -66,22 +66,11 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/fonts/
-    - assets/notices.json
-    # --- 第111回 ---
-    - assets/past_exam/111/hisshu_am.json
-    - assets/past_exam/111/ippan_am.json
-    - assets/fig/111/am_q103_calendar.png
-    - assets/fig/111/am_q104_leopold.png
-    - assets/fig/111/am_q11_femur.png
-    - assets/fig/111/am_q18_cheyne_stokes.png
-    - assets/fig/111/am_q37_barre.png
-    - assets/fig/111/am_q77_broca.png
-    - assets/fig/111/am_q81_ecg.png
-    - assets/fig/111/am_q91_body_surface.png
-      
-    # --- 第113回 ---
-    - assets/past_exam/113/hisshu_am.json
+   - assets/fonts/
+   - assets/notices.json
+   - assets/past_exam/111/
+   - assets/fig/111/
+
 
   fonts:
     - family: NotoSansJP

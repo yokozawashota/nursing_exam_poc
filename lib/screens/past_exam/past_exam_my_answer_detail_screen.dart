@@ -33,6 +33,9 @@ class PastExamMyAnswerDetailScreen extends StatelessWidget {
     final correct = (record.correctLabels ?? const <String>[]).toSet();
     final selected = (record.selectedLabels ?? const <String>[]).toSet();
 
+    // 根拠（choiceRationales）: Map<label, rationale>
+    final rationales = record.rationales ?? const <String, String>{};
+
     return BaseScaffold(
       title: '解答の詳細',
       body: SingleChildScrollView(
@@ -54,6 +57,7 @@ class PastExamMyAnswerDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
+                // 問題文
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
@@ -68,6 +72,7 @@ class PastExamMyAnswerDetailScreen extends StatelessWidget {
                   ),
                 ),
 
+                // 画像
                 if (record.hasImage) ...[
                   const SizedBox(height: 12),
                   Container(
@@ -101,6 +106,7 @@ class PastExamMyAnswerDetailScreen extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
+                // 選択肢（根拠はここでは出さない）
                 ...choices.entries.map((e) {
                   final label = e.key;
                   final text = e.value;
@@ -149,22 +155,35 @@ class PastExamMyAnswerDetailScreen extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
+                // 解説（従来通り）
                 if ((record.explanation ?? '').trim().isNotEmpty) ...[
                   Text('解説', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
-                  Text(record.explanation!),
-                  const SizedBox(height: 12),
+                  Text(
+                    record.explanation!,
+                    style: theme.textTheme.bodyMedium?.copyWith(height: 1.55),
+                  ),
+                  const SizedBox(height: 14),
                 ],
 
-                if ((record.rationales ?? {}).isNotEmpty) ...[
+                // ✅ 根拠（解説の下・解説と同フォント）
+                if (rationales.isNotEmpty) ...[
                   Text('根拠', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
-                  ...((record.rationales ?? {}).entries.map((r) {
+
+                  // ラベル順に並べたいので choices の順で出す（無いものはスキップ）
+                  ...choices.keys.map((label) {
+                    final r = (rationales[label] ?? '').trim();
+                    if (r.isEmpty) return const SizedBox.shrink();
+
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Text('${r.key}：${r.value}'),
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        '$label：$r',
+                        style: theme.textTheme.bodyMedium?.copyWith(height: 1.55),
+                      ),
                     );
-                  }).toList()),
+                  }).toList(),
                 ],
               ],
             ),

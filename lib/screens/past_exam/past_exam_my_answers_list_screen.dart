@@ -3,12 +3,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../models/nurai_question.dart';
 import '../../models/past_exam_history.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/base_scaffold.dart';
 import 'past_exam_my_answer_detail_screen.dart';
-import 'past_exam_question_screen.dart';
 
 enum PastExamCorrectFilter {
   all,
@@ -21,6 +19,12 @@ enum PastExamKindFilter {
   hisshu,
   ippan,
   situation,
+}
+
+enum PastExamTimeFilter {
+  all,
+  am,
+  pm,
 }
 
 class PastExamMyAnswersListScreen extends StatefulWidget {
@@ -52,6 +56,7 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
   // フィルタ
   PastExamCorrectFilter _correctFilter = PastExamCorrectFilter.all;
   PastExamKindFilter _kindFilter = PastExamKindFilter.all;
+  PastExamTimeFilter _timeFilter = PastExamTimeFilter.all;
 
   // ===== 読み込み（buildでやらない） =====
   bool _loading = true;
@@ -122,6 +127,25 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
     return _inferPartKindFromLabel(r.partLabel ?? '');
   }
 
+  // ---- 午前/午後推測 ----
+  PastExamTimeFilter _inferTime(PastExamAnswerRecord r) {
+    final t = '${r.partLabel ?? ''} ${r.partKind ?? ''}'.trim();
+    if (t.contains('午前')) return PastExamTimeFilter.am;
+    if (t.contains('午後')) return PastExamTimeFilter.pm;
+    return PastExamTimeFilter.all;
+  }
+
+  bool _matchesTime(PastExamAnswerRecord r) {
+    switch (_timeFilter) {
+      case PastExamTimeFilter.all:
+        return true;
+      case PastExamTimeFilter.am:
+        return _inferTime(r) == PastExamTimeFilter.am;
+      case PastExamTimeFilter.pm:
+        return _inferTime(r) == PastExamTimeFilter.pm;
+    }
+  }
+
   // ===== フィルタ適用 =====
   bool _matchesCorrect(PastExamAnswerRecord r) {
     switch (_correctFilter) {
@@ -170,10 +194,13 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
     var list = List<PastExamAnswerRecord>.from(items);
 
     list = list.where((r) {
-      return _matchesCorrect(r) && _matchesKind(r) && _matchesSearch(r, _searchKeyword);
+      return _matchesCorrect(r) &&
+          _matchesKind(r) &&
+          _matchesTime(r) &&
+          _matchesSearch(r, _searchKeyword);
     }).toList();
 
-    // recordsForExam は「新しい順」で返ってくる前提（PastExamHistory側）
+    // recordsForExam は PastExamHistory 側で「新しい順」
     return list;
   }
 
@@ -220,65 +247,6 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
     );
   }
 
-  // ============================
-  // 不正解だけ解き直す（履歴→NuraiQuestion 復元）
-  // ============================
-
-  NuraiQuestion _toQuestionFromRecord(PastExamAnswerRecord r) {
-    final choices = r.choices ?? const <String, String>{};
-    final correct = r.correctLabels ?? const <String>[];
-
-    // 推定 kind
-    final kind = choices.isEmpty
-        ? 'input'
-        : (correct.length >= 2 ? 'multiple' : 'single');
-
-    // requiredCorrectCount は必須なので、正答数から推定（最低1）
-    final required = (correct.isNotEmpty ? correct.length : 1);
-
-    return NuraiQuestion(
-      questionText: (r.questionText ?? '').isNotEmpty ? r.questionText! : r.questionKey,
-      choices: choices,
-      correctLabels: correct,
-      rationales: r.rationales,
-      explanation: r.explanation,
-      questionKind: kind,
-      requiredCorrectCount: required,
-      difficulty: '',
-      domain: '',
-      major: '',
-      mid: null,
-      topic: null,
-      sourceType: 'past_exam',
-      sourceTag: r.questionKey, // ここはユニークならOK
-      imagePath: r.imagePath,
-      imageRequired: (r.imagePath ?? '').trim().isNotEmpty,
-    );
-  }
-
-  void _retryWrongOnly(List<PastExamAnswerRecord> all) {
-    final wrong = all.where((r) => !r.isCorrect).toList();
-
-    if (wrong.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('不正解の履歴がありません')),
-      );
-      return;
-    }
-
-    final qs = wrong.map(_toQuestionFromRecord).toList();
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PastExamQuestionScreen(
-          examTitle: '${widget.examTitle}（不正解の復習）',
-          partLabel: '不正解のみ',
-          questions: qs,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -319,18 +287,20 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
                       correct: correctCount,
                       wrong: wrongCount,
                       accuracy: acc,
-                      onRetryWrong: wrongCount == 0 ? null : () => _retryWrongOnly(all),
                       onReset: all.isEmpty
                           ? null
                           : () async {
-                        final ok = await _confirmResetDialog(context);
+                        final ok =
+                        await _confirmResetDialog(context);
                         if (ok != true) return;
-                        await PastExamHistory.instance.resetExam(widget.examId);
+                        await PastExamHistory.instance
+                            .resetExam(widget.examId);
 
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('${widget.examTitle} の解答履歴をリセットしました'),
+                            content: Text(
+                                '${widget.examTitle} の解答履歴をリセットしました'),
                           ),
                         );
                       },
@@ -398,7 +368,6 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
         required int correct,
         required int wrong,
         required double accuracy,
-        required VoidCallback? onRetryWrong,
         required VoidCallback? onReset,
       }) {
     return Container(
@@ -409,61 +378,43 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.black12),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1段目：タイトル + リセット
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '解答履歴（過去問）',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '解答数：$total 問   /   正答率：${_pct(accuracy)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '内訳：正解 $correct ・ 不正解 $wrong',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '解答履歴（過去問）',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              TextButton.icon(
-                onPressed: onReset,
-                style: TextButton.styleFrom(
-                  foregroundColor: theme.colorScheme.error,
+                const SizedBox(height: 4),
+                Text(
+                  '解答数：$total 問   /   正答率：${_pct(accuracy)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-                icon: const Icon(Icons.restart_alt_rounded, size: 18),
-                label: const Text('リセット'),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          // 2段目：不正解だけ解き直す（主張しすぎない）
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: onRetryWrong,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('不正解だけ解き直す'),
+                const SizedBox(height: 6),
+                Text(
+                  '内訳：正解 $correct ・ 不正解 $wrong',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
+          ),
+          TextButton.icon(
+            onPressed: onReset,
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.error,
+            ),
+            icon: const Icon(Icons.restart_alt_rounded, size: 18),
+            label: const Text('リセット'),
           ),
         ],
       ),
@@ -498,7 +449,7 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
           ),
           onChanged: (value) {
             _debounce?.cancel();
-            _debounce = Timer(const Duration(milliseconds: 180), () {
+            _debounce = Timer(const Duration(milliseconds: 150), () {
               if (!mounted) return;
               setState(() {
                 _searchKeyword = value;
@@ -508,6 +459,7 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
         ),
         const SizedBox(height: 8),
 
+        // 既存（種別/正誤）の並びは維持
         Row(
           children: [
             // ===== 種別（左） =====
@@ -577,6 +529,36 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
               ),
             ),
           ],
+        ),
+
+        const SizedBox(height: 8),
+
+        // ✅ 追加：午前/午後（UIの雰囲気は崩さず、1段追加）
+        DropdownButtonFormField<PastExamTimeFilter>(
+          value: _timeFilter,
+          decoration: const InputDecoration(
+            labelText: '午前・午後',
+            isDense: true,
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(
+              value: PastExamTimeFilter.all,
+              child: Text('すべて'),
+            ),
+            DropdownMenuItem(
+              value: PastExamTimeFilter.am,
+              child: Text('午前'),
+            ),
+            DropdownMenuItem(
+              value: PastExamTimeFilter.pm,
+              child: Text('午後'),
+            ),
+          ],
+          onChanged: (v) {
+            if (v == null) return;
+            setState(() => _timeFilter = v);
+          },
         ),
       ],
     );

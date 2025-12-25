@@ -4,7 +4,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 1,
+    "questionNumber": "A001",
     "questionKind": "single",
     "imageRequired": false,
     "question": "労働力調査による労働力人口の令和元年（2019年）平均に最も近いのはどれか。",
@@ -28,7 +28,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 2,
+    "questionNumber": "A002",
     "questionKind": "single",
     "imageRequired": false,
     "question": "日本の令和元年（2019年）の死亡数に近いのはどれか。",
@@ -52,7 +52,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 3,
+    "questionNumber": "A003",
     "questionKind": "single",
     "imageRequired": false,
     "question": "シックハウス症候群（sick house syndrome）に関係する物質はどれか。",
@@ -76,7 +76,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 4,
+    "questionNumber": "A004",
     "questionKind": "single",
     "imageRequired": false,
     "question": "後期高齢者医療制度の被保険者は、区域内に住居を有する〔 〕歳以上の者、および65歳以上〔 〕歳未満であって、政令で定める程度の障害の状態にあるとして後期高齢者医療広域連合の認定を受けた者である。〔 〕に入るのはどれか。",
@@ -100,7 +100,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 5,
+    "questionNumber": "A005",
     "questionKind": "single",
     "imageRequired": false,
     "question": "患者の選択権の行使を最も促進するのはどれか。",
@@ -124,7 +124,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 6,
+    "questionNumber": "A006",
     "questionKind": "multiple",
     "imageRequired": false,
     "question": "マズロー（Maslow, A. H.）の基本的欲求の階層で社会的欲求はどれか。",
@@ -148,7 +148,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 7,
+    "questionNumber": "A007",
     "questionKind": "single",
     "imageRequired": false,
     "question": "胎児循環で胎児から胎盤に血液を送るのはどれか。",
@@ -172,7 +172,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 8,
+    "questionNumber": "A008",
     "questionKind": "single",
     "imageRequired": false,
     "question": "学童期の脈拍数の基準値はどれか。",
@@ -196,7 +196,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 9,
+    "questionNumber": "A009",
     "questionKind": "single",
     "imageRequired": false,
     "question": "日本の女性における平均閉経年齢に最も近いのはどれか。",
@@ -220,7 +220,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 10,
+    "questionNumber": "A010",
     "questionKind": "single",
     "imageRequired": false,
     "question": "令和元年（2019年）の国民生活基礎調査で次の世帯構造のうち最も少ないのはどれか。",
@@ -244,7 +244,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 11,
+    "questionNumber": "A011",
     "questionKind": "single",
     "imageRequired": true,
     "imagePath": "assets/fig/111/am_q11_femur.png",
@@ -269,7 +269,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 12,
+    "questionNumber": "A012",
     "questionKind": "single",
     "imageRequired": false,
     "question": "有害物質を無毒化し排泄する臓器はどれか。",
@@ -293,7 +293,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 13,
+    "questionNumber": "A013",
     "questionKind": "single",
     "imageRequired": false,
     "question": "黄疸のある成人患者にみられる随伴症状はどれか。",
@@ -317,7 +317,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 14,
+    "questionNumber": "A014",
     "questionKind": "single",
     "imageRequired": false,
     "question": "左前胸部から頸部や左上肢への放散痛が生じる疾患はどれか。",
@@ -341,7 +341,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 15,
+    "questionNumber": "A015",
     "questionKind": "single",
     "imageRequired": false,
     "question": "成人女性の赤血球数の基準値はどれか。",
@@ -365,7 +365,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 16,
+    "questionNumber": "A016",
     "questionKind": "single",
     "imageRequired": false,
     "question": "Open-ended question（開かれた質問）はどれか。",
@@ -389,7 +389,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 17,
+    "questionNumber": "A017",
     "questionKind": "single",
     "imageRequired": false,
     "question": "深部体温に最も近いのはどれか。",
@@ -413,7 +413,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 18,
+    "questionNumber": "A018",
     "questionKind": "single",
     "imageRequired": true,
     "imagePath": "assets/fig/111/am_q18_cheyne_stokes.png",
@@ -438,7 +438,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 19,
+    "questionNumber": "A019",
     "questionKind": "single",
     "imageRequired": false,
     "question": "高齢者の義歯の取り扱い方法で正しいのはどれか。",
@@ -462,7 +462,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 20,
+    "questionNumber": "A020",
     "questionKind": "single",
     "imageRequired": false,
     "question": "使用後の注射針を廃棄する容器のバイオハザードマークの色はどれか。",
@@ -486,7 +486,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 21,
+    "questionNumber": "A021",
     "questionKind": "single",
     "imageRequired": false,
     "question": "成人の静脈血採血で適切なのはどれか。",
@@ -510,7 +510,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 22,
+    "questionNumber": "A022",
     "questionKind": "single",
     "imageRequired": false,
     "question": "1回の気管内吸引を30秒以上実施した場合に生じるのはどれか。",
@@ -534,7 +534,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 23,
+    "questionNumber": "A023",
     "questionKind": "single",
     "imageRequired": false,
     "question": "上腕出血時の間接圧迫止血の部位はどれか。",
@@ -558,7 +558,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 24,
+    "questionNumber": "A024",
     "questionKind": "single",
     "imageRequired": false,
     "question": "成人に対する一次救命処置（BLS）において、胸骨圧迫と人工呼吸の回数比は〔　〕：である。",
@@ -582,7 +582,7 @@
     "exam": "看護師国家試験",
     "session": 111,
     "time": "am",
-    "questionNumber": 25,
+    "questionNumber": "A025",
     "questionKind": "single",
     "imageRequired": false,
     "question": "感染症の予防及び感染症の患者に対する医療に関する法律（感染症法）において、結核が分類されるのはどれか。",
@@ -601,367 +601,6 @@
       "3": "該当しない。",
       "4": "該当しない。",
       "5": "該当しない。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 26,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "正常な心臓で心拍出量が減少するのはどれか。",
-    "choices": {
-      "1": "心拍数の増加",
-      "2": "大動脈圧の上昇",
-      "3": "静脈還流量の増加",
-      "4": "心筋収縮力の上昇"
-    },
-    "answer": "2",
-    "explanation": "大動脈圧の上昇は後負荷を増大させ、心拍出量を減少させる。",
-    "choiceRationales": {
-      "1": "一定範囲内では心拍出量は増加する。",
-      "2": "後負荷増大により心拍出量は低下する。",
-      "3": "前負荷増大により心拍出量は増加する。",
-      "4": "心拍出量は増加する。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 27,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "ワクチン接種後の抗体産生について正しいのはどれか。",
-    "choices": {
-      "1": "ワクチン内の抗原を提示するのは好中球である。",
-      "2": "抗原に対して最初に産生される抗体はIgAである。",
-      "3": "抗原に対して血中濃度が最も高くなる抗体はIgMである。",
-      "4": "同じワクチンを反復接種すると抗原に対する抗体の産生量が増加する。"
-    },
-    "answer": "4",
-    "explanation": "免疫記憶により、再接種では抗体産生量が増加する。",
-    "choiceRationales": {
-      "1": "抗原提示細胞は主に樹状細胞である。",
-      "2": "最初に産生されるのはIgMである。",
-      "3": "二次応答ではIgGが主体となる。",
-      "4": "正しい。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 28,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "B細胞が抗原認識によって分化した抗体産生細胞はどれか。",
-    "choices": {
-      "1": "マクロファージ",
-      "2": "形質細胞",
-      "3": "肥満細胞",
-      "4": "T細胞"
-    },
-    "answer": "2",
-    "explanation": "B細胞は形質細胞へ分化して抗体を産生する。",
-    "choiceRationales": {
-      "1": "貪食・抗原提示を担う。",
-      "2": "抗体産生細胞である。",
-      "3": "アレルギー反応に関与する。",
-      "4": "細胞性免疫を担う。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 29,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "皮膚筋炎の皮膚症状はどれか。",
-    "choices": {
-      "1": "環状紅斑",
-      "2": "蝶形紅斑",
-      "3": "ディスコイド疹",
-      "4": "ヘリオトロープ疹"
-    },
-    "answer": "4",
-    "explanation": "皮膚筋炎ではヘリオトロープ疹が特徴的である。",
-    "choiceRationales": {
-      "1": "他疾患でみられる。",
-      "2": "全身性エリテマトーデスに特徴的である。",
-      "3": "円板状エリテマトーデスにみられる。",
-      "4": "皮膚筋炎に特有である。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 30,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "育児休業、介護休業等育児又は家族介護を行う労働者の福祉に関する法律（育児・介護休業法）における介護休業の取得で正しいのはどれか。",
-    "choices": {
-      "1": "介護休業は分割して取得することはできない。",
-      "2": "介護の対象者1人につき半年を限度に取得できる。",
-      "3": "要介護状態にある配偶者を介護するために取得できる。",
-      "4": "介護老人福祉施設に入所している家族の面会のために取得できる。"
-    },
-    "answer": "3",
-    "explanation": "要介護状態にある配偶者の介護は介護休業の対象である。",
-    "choiceRationales": {
-      "1": "分割取得は可能である。",
-      "2": "取得上限は通算93日である。",
-      "3": "正しい。",
-      "4": "面会目的では取得できない。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 31,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "社会福祉法に基づき社会福祉協議会が推進するのはどれか。",
-    "choices": {
-      "1": "がん対策",
-      "2": "男女共同参画",
-      "3": "就労の支援活動",
-      "4": "ボランティア活動"
-    },
-    "answer": "4",
-    "explanation": "社会福祉協議会は、地域福祉の推進を目的とし、住民主体のボランティア活動を推進する。",
-    "choiceRationales": {
-      "1": "がん対策は主に医療・保健施策である。",
-      "2": "男女共同参画は内閣府などが所管する。",
-      "3": "就労支援は関連するが、主目的ではない。",
-      "4": "地域福祉推進のためボランティア活動を推進する。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 32,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "日本の平成30年（2018年）の健康に関する指標の記述で正しいのはどれか。",
-    "choices": {
-      "1": "女性の死因の第1位は老衰である。",
-      "2": "男性の死因の第1位は肺炎である。",
-      "3": "女性の平均寿命は89年を超えている。",
-      "4": "男性の平均寿命は83年を超えている。"
-    },
-    "answer": "1",
-    "explanation": "2018年の統計では、女性の死因第1位は老衰であった。",
-    "choiceRationales": {
-      "1": "2018年は女性の死因第1位が老衰である。",
-      "2": "男性の死因第1位は悪性新生物である。",
-      "3": "女性の平均寿命は約87歳であり、89年は超えていない。",
-      "4": "男性の平均寿命は約81歳である。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 33,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "労働衛生の「管理」とは、作業環境管理と作業管理と〔　〕である。",
-    "choices": {
-      "1": "健康管理",
-      "2": "総括管理",
-      "3": "労務管理",
-      "4": "出退勤管理"
-    },
-    "answer": "1",
-    "explanation": "労働衛生管理は、作業環境管理・作業管理・健康管理の三管理から成る。",
-    "choiceRationales": {
-      "1": "三管理の一つである。",
-      "2": "労働衛生管理の構成要素ではない。",
-      "3": "人事・労務の管理である。",
-      "4": "勤務管理に該当する。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 34,
-    "questionKind": "multiple",
-    "imageRequired": false,
-    "question": "健康を人々の権利として明記したのはどれか。",
-    "choices": {
-      "1": "世界保健機関（WHO）の健康に関する定義",
-      "2": "ジュネーブ宣言",
-      "3": "世界人権宣言",
-      "4": "リスボン宣言"
-    },
-    "answer": ["1", "3"],
-    "explanation": "WHO憲章および世界人権宣言では、健康を基本的人権として位置づけている。",
-    "choiceRationales": {
-      "1": "健康を基本的人権の一つとして明記している。",
-      "2": "医師の倫理に関する宣言である。",
-      "3": "健康を含む人権を明記している。",
-      "4": "患者の権利に関する宣言である。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 35,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "地域連携クリニカルパスの目的はどれか。",
-    "choices": {
-      "1": "医療機関から在宅までの医療の継続的な提供",
-      "2": "地域包括支援センターと地域住民との連携",
-      "3": "地域医療を担う医療専門職の資質向上",
-      "4": "患者が活用できる社会資源の紹介"
-    },
-    "answer": "1",
-    "explanation": "地域連携クリニカルパスは、急性期から在宅までの切れ目ない医療提供を目的とする。",
-    "choiceRationales": {
-      "1": "医療の継続性確保が目的である。",
-      "2": "主目的ではない。",
-      "3": "教育目的ではない。",
-      "4": "直接の目的ではない。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 36,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "集団指導が望ましいのはどれか。",
-    "choices": {
-      "1": "胃全摘出術後の患者への退院指導",
-      "2": "1型糖尿病の学童を対象とした療養指導",
-      "3": "子宮頸癌術後の神経因性膀胱患者への自己導尿指導",
-      "4": "HIV感染者への生活指導"
-    },
-    "answer": "2",
-    "explanation": "同様の療養課題をもつ学童への指導は集団指導が適している。",
-    "choiceRationales": {
-      "1": "個別性が高い。",
-      "2": "同年代・同疾患で集団指導が有効である。",
-      "3": "個別技術指導が必要である。",
-      "4": "プライバシー配慮が必要である。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 37,
-    "questionKind": "single",
-    "imageRequired": true,
-    "imagePath": "assets/fig/111/am_q37_barre.png",
-    "question": "上肢のフィジカルアセスメントの結果で正しいのはどれか。",
-    "choices": {
-      "1": "位置覚の異常",
-      "2": "錐体路の障害",
-      "3": "小脳機能の異常",
-      "4": "関節可動域の障害"
-    },
-    "answer": "2",
-    "explanation": "閉眼時に腕が回内・下降する所見は錐体路障害を示す。",
-    "choiceRationales": {
-      "1": "深部感覚障害ではない。",
-      "2": "Barré徴候であり錐体路障害を示す。",
-      "3": "小脳障害では協調運動障害が主体となる。",
-      "4": "可動域制限は示されていない。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 38,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "臥床患者の体位変換とボディメカニクスの原則との組合せで正しいのはどれか。",
-    "choices": {
-      "1": "仰臥位から側臥位－トルクの原理",
-      "2": "仰臥位から長座位－摩擦力",
-      "3": "ベッド片側への水平移動－力のモーメント",
-      "4": "ベッド頭部への水平移動－てこの第1種の原理"
-    },
-    "answer": "1",
-    "explanation": "仰臥位から側臥位への体位変換ではトルクの原理を活用する。",
-    "choiceRationales": {
-      "1": "回転運動を利用するため正しい。",
-      "2": "摩擦力は低減する対象である。",
-      "3": "主に摩擦の影響を受ける。",
-      "4": "該当しない。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 39,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "Aさんが病室外のトイレまで移動するための適切な療養環境はどれか。",
-    "choices": {
-      "1": "履物はAさんの左手側に置く。",
-      "2": "ベッド柵はAさんの右手側に設置する。",
-      "3": "輸液スタンドはAさんの左手側に置く。",
-      "4": "ベッドは端座位時にAさんの足底が床につく高さにする。"
-    },
-    "answer": "4",
-    "explanation": "安全な立ち上がりのため、足底が床につく高さに調整する。",
-    "choiceRationales": {
-      "1": "利き手との関係で適切ではない。",
-      "2": "点滴側を考慮すると不適切である。",
-      "3": "点滴は右前腕である。",
-      "4": "転倒予防のため適切である。"
-    }
-  },
-  {
-    "sourceType": "past_exam",
-    "exam": "看護師国家試験",
-    "session": 111,
-    "time": "am",
-    "questionNumber": 40,
-    "questionKind": "single",
-    "imageRequired": false,
-    "question": "全介助が必要な臥床患者の口腔ケアで適切なのはどれか。",
-    "choices": {
-      "1": "スポンジブラシは水を含ませた後、絞って使用する。",
-      "2": "頸部を後屈した体位で実施する。",
-      "3": "終了後は口腔内を乾燥させる。",
-      "4": "舌苔は強くこすって除去する。"
-    },
-    "answer": "1",
-    "explanation": "誤嚥防止のため、スポンジブラシは絞って使用する。",
-    "choiceRationales": {
-      "1": "誤嚥予防の観点から適切である。",
-      "2": "誤嚥リスクが高まる。",
-      "3": "口腔内は保湿が必要である。",
-      "4": "粘膜損傷の危険がある。"
     }
   }
 ]

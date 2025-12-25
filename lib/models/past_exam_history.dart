@@ -60,6 +60,28 @@ class PastExamAnswerRecord {
   /// 互換：画面が `hasImage` を参照していた
   bool get hasImage => (imagePath ?? '').trim().isNotEmpty;
 
+  /// ✅ 互換：古い画面コードが `choiceLabel` を参照していた場合の救済
+  /// 選択ラベルがあれば "A" / "2" などを結合して返す（無ければ null）
+  String? get choiceLabel {
+    final list = (selectedLabels ?? const <String>[])
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (list.isEmpty) return null;
+    return list.join(',');
+  }
+
+  /// ✅ 午前/午後判定（partLabel/partKindが空でも推測）
+  bool get isAM {
+    final t = '${partLabel ?? ''} ${partKind ?? ''}'.trim();
+    return t.contains('午前') || t.toLowerCase().contains('_am');
+  }
+
+  bool get isPM {
+    final t = '${partLabel ?? ''} ${partKind ?? ''}'.trim();
+    return t.contains('午後') || t.toLowerCase().contains('_pm');
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'examId': examId,
