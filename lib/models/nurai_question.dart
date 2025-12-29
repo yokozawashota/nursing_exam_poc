@@ -1,65 +1,100 @@
 // lib/models/nurai_question.dart
+
 class NuraiQuestion {
   final String questionText;
+
+  /// 状況設定などの「背景文」（任意）
+  /// JSON側で backgroundText / background / context / scenario / scenarioText があれば読み取る
+  final String? backgroundText;
+
+  /// 'A' -> '...' / '1' -> '...'
   final Map<String, String> choices;
 
-  /// 正解ラベル（例: ["3"] / ["2","4"] / 入力式なら ["3.8"] など）
+  /// ['A'] or ['A','C']
   final List<String> correctLabels;
 
-  /// 各選択肢の根拠（任意）
-  final Map<String, String>? rationales;
+  /// 選択肢ごとの根拠（過去問JSONの choiceRationales）
+  final Map<String, String>? choiceRationales;
 
-  /// 解説（任意）
   final String? explanation;
 
-  /// single / multiple / select_incorrect / input（必要なら）
+  /// 'single' / 'multi' / 'select_incorrect' etc
   final String questionKind;
 
-  /// 複数選択の必要正解数
   final int requiredCorrectCount;
 
-  /// 難易度など（任意）
   final String difficulty;
   final String domain;
   final String major;
   final String? mid;
   final String? topic;
 
-  /// 過去問
+  /// 'llm' / 'past_exam'
   final String sourceType;
-  final String? sourceTag;
 
-  /// ★ 画像パス（assets のパス）
-  /// 例: assets/fig/111/am_q11_femur.png
+  /// unique key
+  final String sourceTag;
+
   final String? imagePath;
-
-  /// ★ 画像が必要か（任意）
   final bool imageRequired;
 
   const NuraiQuestion({
     required this.questionText,
+    this.backgroundText,
     required this.choices,
     required this.correctLabels,
-    this.rationales,
+    this.choiceRationales,
     this.explanation,
-    this.questionKind = 'single',
+    required this.questionKind,
     required this.requiredCorrectCount,
-    this.difficulty = '',
-    this.domain = '',
-    this.major = '',
+    required this.difficulty,
+    required this.domain,
+    required this.major,
     this.mid,
     this.topic,
-    this.sourceType = 'past_exam',
-    this.sourceTag,
+    required this.sourceType,
+    required this.sourceTag,
     this.imagePath,
-    this.imageRequired = false,
+    required this.imageRequired,
   });
 
-  /// 複数選択（誤答選択も複数になり得る）
-  bool get isMultiple => questionKind == 'multiple' || questionKind == 'select_incorrect';
-
-  /// 入力式（計算問題など）：choices が空でも input とみなす
-  bool get isInput => questionKind == 'input' || choices.isEmpty;
-
-  bool get hasImage => (imagePath ?? '').trim().isNotEmpty;
+  NuraiQuestion copyWith({
+    String? questionText,
+    String? backgroundText,
+    Map<String, String>? choices,
+    List<String>? correctLabels,
+    Map<String, String>? choiceRationales,
+    String? explanation,
+    String? questionKind,
+    int? requiredCorrectCount,
+    String? difficulty,
+    String? domain,
+    String? major,
+    String? mid,
+    String? topic,
+    String? sourceType,
+    String? sourceTag,
+    String? imagePath,
+    bool? imageRequired,
+  }) {
+    return NuraiQuestion(
+      questionText: questionText ?? this.questionText,
+      backgroundText: backgroundText ?? this.backgroundText,
+      choices: choices ?? this.choices,
+      correctLabels: correctLabels ?? this.correctLabels,
+      choiceRationales: choiceRationales ?? this.choiceRationales,
+      explanation: explanation ?? this.explanation,
+      questionKind: questionKind ?? this.questionKind,
+      requiredCorrectCount: requiredCorrectCount ?? this.requiredCorrectCount,
+      difficulty: difficulty ?? this.difficulty,
+      domain: domain ?? this.domain,
+      major: major ?? this.major,
+      mid: mid ?? this.mid,
+      topic: topic ?? this.topic,
+      sourceType: sourceType ?? this.sourceType,
+      sourceTag: sourceTag ?? this.sourceTag,
+      imagePath: imagePath ?? this.imagePath,
+      imageRequired: imageRequired ?? this.imageRequired,
+    );
+  }
 }

@@ -56,11 +56,27 @@ class QuestionService {
         (raw['requiredCorrectCount'] as int?) ??
             correctLabels.length.clamp(1, choices.length);
 
+    // ★ sourceTag は NuraiQuestion 側で required（null不可）なのでフォールバック必須
+    final String sourceTag = (raw['sourceTag']?.toString().trim() ?? '');
+    final String fixedSourceTag = sourceTag.isNotEmpty
+        ? sourceTag
+        : 'ai:${DateTime.now().millisecondsSinceEpoch}';
+
+    // ★ 画像関連（AI生成は基本なし。将来rawに入れるならここで拾える）
+    final String? imagePath = raw['imagePath']?.toString();
+    final bool imageRequired =
+        (raw['imageRequired'] == true) || ((imagePath ?? '').trim().isNotEmpty && raw['imageRequired'] == true);
+
     return NuraiQuestion(
       questionText: questionText,
+      backgroundText: raw['backgroundText']?.toString() ??
+          raw['background']?.toString() ??
+          raw['context']?.toString() ??
+          raw['scenario']?.toString() ??
+          raw['scenarioText']?.toString(),
       choices: choices,
       correctLabels: correctLabels,
-      rationales: rationales,
+      choiceRationales: rationales,
       explanation: raw['explanation']?.toString(),
       questionKind: kind,
       requiredCorrectCount: requiredCorrectCount,
@@ -70,7 +86,9 @@ class QuestionService {
       mid: raw['mid']?.toString(),
       topic: raw['topic']?.toString(),
       sourceType: 'ai',
-      sourceTag: raw['sourceTag']?.toString(),
+      sourceTag: fixedSourceTag,
+      imagePath: (imagePath ?? '').trim().isEmpty ? null : imagePath,
+      imageRequired: imageRequired, // ★ required なので必ず渡す
     );
   }
 
@@ -89,12 +107,9 @@ class QuestionService {
 
     // ===== ユーザー設定の読み取り =====
     final choiceMode = await SettingsService.getChoiceMode() ?? 'auto';
-    final probFiveChoice =
-        (await SettingsService.getFiveChoiceProbability()) ?? 0;
-    final probMultiple =
-        (await SettingsService.getMultipleKindProbability()) ?? 0;
-    final probIncorrect =
-        (await SettingsService.getIncorrectKindProbability()) ?? 0;
+    final probFiveChoice = (await SettingsService.getFiveChoiceProbability()) ?? 0;
+    final probMultiple = (await SettingsService.getMultipleKindProbability()) ?? 0;
+    final probIncorrect = (await SettingsService.getIncorrectKindProbability()) ?? 0;
 
     debugPrint(
       '[log] [SETTINGS] ChoiceMode=$choiceMode | 5択確率=${probFiveChoice}% | '
@@ -156,11 +171,9 @@ class QuestionService {
       );
       final mids = majorNode.mids.map((m) => m.id).toList();
       if (mids.isNotEmpty) {
-        resolvedMid =
-        await TopicPicker.pickHisshuMidForMajor(majorNode.id, mids);
+        resolvedMid = await TopicPicker.pickHisshuMidForMajor(majorNode.id, mids);
         final MidCategory? midNode = _findMidNode(majorNode, resolvedMid);
-        final topics =
-        (midNode?.topics ?? const <Topic>[]).map((t) => t.label).toList();
+        final topics = (midNode?.topics ?? const <Topic>[]).map((t) => t.label).toList();
         if (topics.isNotEmpty) {
           topic = await TopicPicker.pickTopic(
             domain: kHisshuCategory,
@@ -171,8 +184,7 @@ class QuestionService {
         }
       }
     } else {
-      final DomainCategory tree =
-      CategoryRepository.buildGeneralDomainTree(domain);
+      final DomainCategory tree = CategoryRepository.buildGeneralDomainTree(domain);
       final MajorCategory majorNode = tree.majors.firstWhere(
             (m) => m.id == major,
         orElse: () => tree.majors.isNotEmpty
@@ -195,8 +207,7 @@ class QuestionService {
 
       if (resolvedMid != null && resolvedMid!.isNotEmpty) {
         final MidCategory? midNode = _findMidNode(majorNode, resolvedMid);
-        final topics =
-        (midNode?.topics ?? const <Topic>[]).map((t) => t.label).toList();
+        final topics = (midNode?.topics ?? const <Topic>[]).map((t) => t.label).toList();
         if (topics.isNotEmpty) {
           topic = await TopicPicker.pickTopic(
             domain: domain,
@@ -273,15 +284,15 @@ class QuestionService {
     (out['choices'] as Map?)?.map((k, v) => MapEntry(k.toString(), v.toString()));
 
     final List<String> correct =
-        ((out['correctAnswers'] as List?)?.map((e) => e.toString()).toList()) ??
-            [];
+        ((out['correctAnswers'] as List?)?.map((e) => e.toString()).toList()) ?? [];
 
     if (choices != null) {
       // 1) 正答が choices に含まれない場合の安全弁
       final present = choices.keys.toSet();
       final filtered = correct.where(present.contains).toList();
-      out['correctAnswers'] =
-      filtered.isNotEmpty ? filtered : (choices.isNotEmpty ? [choices.keys.first] : []);
+      out['correctAnswers'] = filtered.isNotEmpty
+          ? filtered
+          : (choices.isNotEmpty ? [choices.keys.first] : []);
 
       // 2) 問題文に「nつ選んでください」を付与（multiple/select_incorrect のとき）
       final isMulti = desiredKind == 'multiple' || desiredKind == 'select_incorrect';
@@ -373,8 +384,7 @@ _RemapResult _remapChoicesRandom({
   Map<String, String>? originalRationales,
 }) {
   // 既存ラベルの並び（A..Eのうち存在するものだけ）
-  final labels =
-  ['A', 'B', 'C', 'D', 'E'].where(originalChoices.containsKey).toList();
+  final labels = ['A', 'B', 'C', 'D', 'E'].where(originalChoices.containsKey).toList();
   final n = labels.length;
   if (n <= 1) {
     return _RemapResult(
@@ -395,8 +405,7 @@ _RemapResult _remapChoicesRandom({
 
   final newChoices = <String, String>{};
   final newCorrects = <String>[];
-  Map<String, String>? newRationales =
-  originalRationales != null ? <String, String>{} : null;
+  Map<String, String>? newRationales = originalRationales != null ? <String, String>{} : null;
 
   for (var i = 0; i < entries.length; i++) {
     final newLabel = String.fromCharCode('A'.codeUnitAt(0) + i);

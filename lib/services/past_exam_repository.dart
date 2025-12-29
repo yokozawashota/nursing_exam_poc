@@ -24,17 +24,6 @@ class PastExamRepository {
   PastExamRepository._();
   static final PastExamRepository instance = PastExamRepository._();
 
-  /// ====== 公開API（画面が壊れないよう固定） ======
-  ///
-  /// - partsForExam(examId): その年度で利用可能なJSONパートを自動検出
-  /// - load(examId, partKey): 1パートの問題を読み込み
-  /// - totalQuestionsOfExam(examId): その年度の総問題数（全パート合計）
-  ///
-  /// pubspec.yaml を
-  ///   - assets/past_exam/
-  ///   - assets/fig/
-  /// の「ディレクトリ指定」にしても AssetManifest から列挙できるようにする。
-
   // ---- キャッシュ ----
   Map<String, dynamic>? _assetManifest;
   final Map<String, List<PastExamPartMeta>> _partsCache = {};
@@ -94,7 +83,14 @@ class PastExamRepository {
   }) async {
     final assetPath = 'assets/past_exam/$examId/$partKey.json';
     final raw = await rootBundle.loadString(assetPath);
-    final decoded = jsonDecode(raw);
+
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (_) {
+      // JSONが壊れている場合は空扱い
+      return const [];
+    }
 
     if (decoded is! List) return const [];
 
@@ -105,8 +101,17 @@ class PastExamRepository {
 
       final j = Map<String, dynamic>.from(item as Map);
 
+      // ---- 背景文（任意） ----
+      final backgroundText = (j['backgroundText'] ??
+          j['background'] ??
+          j['context'] ??
+          j['scenario'] ??
+          j['scenarioText'])
+          ?.toString();
+
       final questionText = (j['question'] ?? j['questionText'] ?? '').toString();
 
+      // ---- choices ----
       final choicesRaw = j['choices'];
       final choices = <String, String>{};
       if (choicesRaw is Map) {
@@ -116,6 +121,7 @@ class PastExamRepository {
         }
       }
 
+      // ---- correctLabels ----
       final ca = j['correctAnswers'] ?? j['correctLabels'] ?? j['answer'];
       final correctLabels = <String>[];
       if (ca is List) {
@@ -127,12 +133,12 @@ class PastExamRepository {
         if (s.isNotEmpty) correctLabels.add(s);
       }
 
-      // ✅ 根拠：choiceRationales のみ対応（rationales はフォローしない）
+      // ---- choiceRationales（過去問JSONのキー） ----
       final rk = j['choiceRationales'];
-      Map<String, String>? rationales;
+      Map<String, String>? choiceRationales;
       if (rk is Map) {
         final m = Map<String, dynamic>.from(rk as Map);
-        rationales = m.map((k, v) => MapEntry(k.toString(), (v ?? '').toString()));
+        choiceRationales = m.map((k, v) => MapEntry(k.toString(), (v ?? '').toString()));
       }
 
       final explanation = j['explanation']?.toString();
@@ -145,8 +151,9 @@ class PastExamRepository {
       final sourceType = (j['sourceType'] ?? 'past_exam').toString();
 
       // sourceTag：無ければ自動生成（キー安定用）
-      final sourceTag = (j['sourceTag'] ?? j['tag'] ?? '').toString().trim().isNotEmpty
-          ? (j['sourceTag'] ?? j['tag']).toString()
+      final rawTag = (j['sourceTag'] ?? j['tag'])?.toString().trim() ?? '';
+      final sourceTag = rawTag.isNotEmpty
+          ? rawTag
           : _defaultSourceTag(examId: examId, partKey: partKey, index1: i + 1);
 
       // 画像：figure / imagePath を許容
@@ -156,9 +163,10 @@ class PastExamRepository {
       out.add(
         NuraiQuestion(
           questionText: questionText,
+          backgroundText: (backgroundText ?? '').trim().isEmpty ? null : backgroundText,
           choices: choices,
           correctLabels: correctLabels,
-          rationales: rationales,
+          choiceRationales: choiceRationales,
           explanation: explanation,
           questionKind: questionKind,
           requiredCorrectCount: requiredCorrectCount,
@@ -202,7 +210,6 @@ class PastExamRepository {
     return total;
   }
 
-  /// 年度追加時などでキャッシュを捨てたい場合に呼べる（任意）
   void clearCache() {
     _assetManifest = null;
     _partsCache.clear();
@@ -212,13 +219,12 @@ class PastExamRepository {
   // ====== 表示名生成 ======
 
   String _labelFromPartKey(String partKey) {
-    // 例: hisshu_am / ippan_pm / situation_am
     final lower = partKey.toLowerCase();
 
     String kind = '';
     if (lower.startsWith('hisshu')) kind = '必修問題';
     if (lower.startsWith('ippan')) kind = '一般問題';
-    if (lower.startsWith('situation')) kind = '状況設定問題';
+    if (lower.startsWith('situation') || lower.startsWith('jokyo')) kind = '状況設定問題';
 
     String time = '';
     if (lower.endsWith('_am')) time = '午前';
@@ -231,7 +237,6 @@ class PastExamRepository {
   String _descFromPartKey(String partKey) {
     final label = _labelFromPartKey(partKey);
     if (label.isEmpty) return '';
-    // 「必修問題 午前」→「必修 午前の問題を解く」
     final t = label.replaceAll('問題', '');
     return '$t の問題を解く';
   }
@@ -241,7 +246,6 @@ class PastExamRepository {
     required String partKey,
     required int index1,
   }) {
-    // 例: past_exam:111:hisshu_am:1
     return 'past_exam:$examId:$partKey:$index1';
   }
 }

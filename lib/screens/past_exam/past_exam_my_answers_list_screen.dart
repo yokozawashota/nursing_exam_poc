@@ -4,9 +4,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../models/past_exam_history.dart';
+import '../../models/nurai_question.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/base_scaffold.dart';
 import 'past_exam_my_answer_detail_screen.dart';
+import 'past_exam_question_screen.dart';
 
 enum PastExamCorrectFilter {
   all,
@@ -247,6 +249,154 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
     );
   }
 
+  // =========================
+  // ✅ ここが今回の本命：不正解を解き直す（復習ラベルは一切使わない）
+  // =========================
+
+  /// ✅ 年度内の不正解を「元の partLabel / partKind」ごとにグループ化する
+  Map<_RetryGroupKey, List<PastExamAnswerRecord>> _wrongGroupsForRetry() {
+    final wrong = _allRecords.where((r) => !r.isCorrect).toList();
+
+    final Map<_RetryGroupKey, List<PastExamAnswerRecord>> groups = {};
+    for (final r in wrong) {
+      if (!r.hasSnapshot) continue; // スナップショット無いものは復習できない
+      final key = _RetryGroupKey(
+        partLabel: (r.partLabel ?? '').trim(),
+        partKind: (r.partKind ?? '').trim(),
+      );
+      (groups[key] ??= []).add(r);
+    }
+
+    // 各グループを出題順っぽく整列
+    for (final entry in groups.entries) {
+      entry.value.sort((a, b) {
+        final an = a.questionNo ?? 1 << 30;
+        final bn = b.questionNo ?? 1 << 30;
+        if (an != bn) return an.compareTo(bn);
+        return a.answeredAtMs.compareTo(b.answeredAtMs);
+      });
+    }
+
+    return groups;
+  }
+
+  /// ✅ PastExamAnswerRecord（履歴スナップショット）→ NuraiQuestion（出題用）に復元
+  NuraiQuestion _toQuestionFromRecord(PastExamAnswerRecord r) {
+    final questionText = (r.questionText ?? r.questionKey).trim();
+    final choices = r.choices ?? const <String, String>{};
+    final correctLabels = r.correctLabels ?? const <String>[];
+
+    // 履歴だけだと厳密には分からないが最低限でOK
+    final kind = (correctLabels.length >= 2) ? 'multi' : 'single';
+    final requiredCorrectCount = (kind == 'multi') ? correctLabels.length : 1;
+
+    final imagePath = (r.imagePath ?? '').trim();
+    final imageRequired = imagePath.isNotEmpty;
+
+    return NuraiQuestion(
+      questionText: questionText,
+      backgroundText: null,
+      choices: choices,
+      correctLabels: correctLabels,
+      choiceRationales: r.rationales,
+      explanation: r.explanation,
+      questionKind: kind,
+      requiredCorrectCount: requiredCorrectCount,
+
+      // 履歴からは取れないのでダミー（表示やロジックに影響させない）
+      difficulty: 'past_exam',
+      domain: '',
+      major: '',
+      mid: null,
+      topic: null,
+
+      sourceType: 'past_exam',
+      sourceTag: r.questionKey, // ユニークキー
+
+      imagePath: imageRequired ? imagePath : null,
+      imageRequired: imageRequired,
+    );
+  }
+
+  Future<_RetryGroupKey?> _pickRetryGroup(
+      BuildContext context,
+      Map<_RetryGroupKey, List<PastExamAnswerRecord>> groups,
+      ) async {
+    final keys = groups.keys.toList();
+
+    // グループが1つなら選択不要
+    if (keys.length == 1) return keys.first;
+
+    return showModalBottomSheet<_RetryGroupKey>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            itemCount: keys.length,
+            separatorBuilder: (_, __) => const Divider(height: 0),
+            itemBuilder: (_, i) {
+              final k = keys[i];
+              final count = groups[k]?.length ?? 0;
+
+              // 表示名（空だった場合の保険）
+              final label = (k.partLabel.isNotEmpty) ? k.partLabel : '（パート不明）';
+              final kind = (k.partKind.isNotEmpty) ? k.partKind : '';
+
+              return ListTile(
+                title: Text(
+                  kind.isEmpty ? label : '$kind ・ $label',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text('不正解：$count 問'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(ctx).pop(k),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _startRetryWrong(BuildContext context) async {
+    final groups = _wrongGroupsForRetry();
+
+    if (groups.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('不正解の履歴がありません（または復習用スナップショットがありません）')),
+      );
+      return;
+    }
+
+    final picked = await _pickRetryGroup(context, groups);
+    if (picked == null) return;
+
+    final records = groups[picked] ?? const <PastExamAnswerRecord>[];
+    if (records.isEmpty) return;
+
+    final qs = <NuraiQuestion>[
+      for (final r in records) _toQuestionFromRecord(r),
+    ];
+
+    // ✅ ここが最重要：
+    // PastExamQuestionScreen に「復習」などのラベルは一切渡さず、
+    // 元の partLabel / partKind をそのまま渡す
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PastExamQuestionScreen(
+          examId: widget.examId,
+          examTitle: widget.examTitle,
+          partLabel: picked.partLabel.isNotEmpty ? picked.partLabel : '（不正解の解き直し）',
+          questions: qs,
+          partKind: picked.partKind.isNotEmpty ? picked.partKind : null,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -282,6 +432,7 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _headerCard(
+                      context,
                       theme,
                       total: all.length,
                       correct: correctCount,
@@ -290,17 +441,14 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
                       onReset: all.isEmpty
                           ? null
                           : () async {
-                        final ok =
-                        await _confirmResetDialog(context);
+                        final ok = await _confirmResetDialog(context);
                         if (ok != true) return;
-                        await PastExamHistory.instance
-                            .resetExam(widget.examId);
+                        await PastExamHistory.instance.resetExam(widget.examId);
 
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                                '${widget.examTitle} の解答履歴をリセットしました'),
+                            content: Text('${widget.examTitle} の解答履歴をリセットしました'),
                           ),
                         );
                       },
@@ -363,6 +511,7 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
   // ===== UI部品 =====
 
   Widget _headerCard(
+      BuildContext context,
       ThemeData theme, {
         required int total,
         required int correct,
@@ -378,43 +527,61 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.black12),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '解答履歴（過去問）',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+          // 上段：タイトル＋リセット
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '解答履歴（過去問）',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '解答数：$total 問   /   正答率：${_pct(accuracy)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '内訳：正解 $correct ・ 不正解 $wrong',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '解答数：$total 問   /   正答率：${_pct(accuracy)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              ),
+              TextButton.icon(
+                onPressed: onReset,
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '内訳：正解 $correct ・ 不正解 $wrong',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+                icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                label: const Text('リセット'),
+              ),
+            ],
           ),
-          TextButton.icon(
-            onPressed: onReset,
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
+          // ✅ 下部：不正解を解き直す（常に表示・不正解0なら無効化）
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: (wrong > 0)
+                  ? () => _startRetryWrong(context)
+                  : null, // ← ここが重要（null でグレーアウト）
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('不正解を解き直す'),
             ),
-            icon: const Icon(Icons.restart_alt_rounded, size: 18),
-            label: const Text('リセット'),
           ),
         ],
       ),
@@ -459,10 +626,8 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
         ),
         const SizedBox(height: 8),
 
-        // 既存（種別/正誤）の並びは維持
         Row(
           children: [
-            // ===== 種別（左） =====
             Expanded(
               child: DropdownButtonFormField<PastExamKindFilter>(
                 value: _kindFilter,
@@ -496,10 +661,7 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
                 },
               ),
             ),
-
             const SizedBox(width: 8),
-
-            // ===== 正誤（右） =====
             Expanded(
               child: DropdownButtonFormField<PastExamCorrectFilter>(
                 value: _correctFilter,
@@ -533,7 +695,6 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
 
         const SizedBox(height: 8),
 
-        // ✅ 追加：午前/午後（UIの雰囲気は崩さず、1段追加）
         DropdownButtonFormField<PastExamTimeFilter>(
           value: _timeFilter,
           decoration: const InputDecoration(
@@ -602,4 +763,24 @@ class _PastExamMyAnswersListScreenState extends State<PastExamMyAnswersListScree
       },
     );
   }
+}
+
+class _RetryGroupKey {
+  final String partLabel;
+  final String partKind;
+
+  const _RetryGroupKey({
+    required this.partLabel,
+    required this.partKind,
+  });
+
+  @override
+  bool operator ==(Object other) {
+    return other is _RetryGroupKey &&
+        other.partLabel == partLabel &&
+        other.partKind == partKind;
+  }
+
+  @override
+  int get hashCode => Object.hash(partLabel, partKind);
 }

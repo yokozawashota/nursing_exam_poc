@@ -70,7 +70,8 @@ flutter:
    - assets/notices.json
    - assets/past_exam/111/
    - assets/fig/111/
-
+   - assets/past_exam/113/
+   - assets/fig/113/
 
   fonts:
     - family: NotoSansJP

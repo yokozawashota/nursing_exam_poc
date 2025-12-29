@@ -140,6 +140,14 @@ class _PastExamListScreenState extends State<PastExamListScreen> {
     return _partsOf(timeLabel).any((p) => (_availableByPartKey[p.partKey] ?? false));
   }
 
+  String _partKindFromPartKey(String partKey) {
+    final lower = partKey.toLowerCase();
+    if (lower.startsWith('hisshu')) return '必修';
+    if (lower.startsWith('ippan')) return '一般';
+    if (lower.startsWith('jokyo')) return '状況設定';
+    return '';
+  }
+
   Future<void> _openPart(_PartMeta p) async {
     try {
       final questions = await PastExamRepository.instance.load(
@@ -162,6 +170,8 @@ class _PastExamListScreenState extends State<PastExamListScreen> {
             examTitle: widget.examTitle,
             partLabel: '${p.label} ${p.timeLabel}',
             questions: questions,
+            examId: widget.examId, // ✅ 必須
+            partKind: _partKindFromPartKey(p.partKey), // ✅ 履歴用（任意だが入れておく）
           ),
         ),
       );
@@ -209,6 +219,8 @@ class _PastExamListScreenState extends State<PastExamListScreen> {
             examTitle: widget.examTitle,
             partLabel: timeLabel, // まとめ解答
             questions: merged,
+            examId: widget.examId, // ✅ 必須
+            partKind: 'まとめ', // ✅ 履歴表示のラベル用（任意）
           ),
         ),
       );

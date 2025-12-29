@@ -1,0 +1,28 @@
+[
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 113,
+    "time": "pm",
+    "questionNumber": "B088",
+    "questionKind": "multiple",
+    "imageRequired": false,
+    "question": "予防接種に生ワクチンが使用される疾患はどれか。2つ選べ。",
+    "choices": {
+      "1": "ジフテリア（diphtheria）",
+      "2": "日本脳炎（Japanese encephalitis）",
+      "3": "破傷風（tetanus）",
+      "4": "結核（tuberculosis）",
+      "5": "麻疹（measles）"
+    },
+    "answer": ["4", "5"],
+    "explanation": "結核はBCG（生ワクチン）、麻疹は麻疹ワクチン（生ワクチン）が用いられる。",
+    "choiceRationales": {
+      "1": "ジフテリアはトキソイド（不活化）であり生ワクチンではない。",
+      "2": "日本脳炎は一般に不活化ワクチンが用いられる。",
+      "3": "破傷風はトキソイド（不活化）であり生ワクチンではない。",
+      "4": "BCGは生ワクチンであり正しい。",
+      "5": "麻疹ワクチンは生ワクチンであり正しい。"
+    }
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 113,
+    "time": "am",
+    "questionNumber": "A090",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "100mg/5mLと表記された注射薬を75mg与薬するのに必要な薬液量を求めよ。ただし、小数点以下第1位を四捨五入すること。",
+    "choices": {},
+    "answer": "3.8",
+    "explanation": "100mg/5mL＝20mg/mL。75mg÷20mg/mL＝3.75mL→小数点以下第1位四捨五入で3.8mL。",
+    "choiceRationales": {}
+  }
+]
