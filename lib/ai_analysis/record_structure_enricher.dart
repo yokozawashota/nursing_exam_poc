@@ -14,7 +14,6 @@ class RecordStructureEnricher {
 
   /// 与えられた AnswerRecord のリストに対して、
   /// major / mid / topic がすべて空のものだけ LLM で補完して返す。
-  ///
   /// すでに値が入っているレコードはそのまま返却する。
   static Future<List<AnswerRecord>> enrichAll(
       List<AnswerRecord> records,
