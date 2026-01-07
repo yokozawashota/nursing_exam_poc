@@ -15,6 +15,8 @@ import '../services/notice_service.dart';
 import '../services/notice_prefs.dart';
 import '../models/notice.dart';
 
+import '../characters/character_hud_anchor.dart';
+
 class BottomNavShell extends StatefulWidget {
   const BottomNavShell({super.key});
 
@@ -32,11 +34,11 @@ class _BottomNavShellState extends State<BottomNavShell> {
     super.initState();
 
     _pages = <Widget>[
-      const AiAnalysisScreen(),           // 0: 学習分析
-      const ScoreScreen(),               // 1: スコア
-      _HomeTab(onSelectTab: _setIndex),  // 2: ホーム
-      const AnswerHistoryScreen(),       // 3: 履歴
-      const SettingsScreen(),            // 4: 設定
+      const AiAnalysisScreen(), // 0: 学習分析
+      const ScoreScreen(), // 1: スコア
+      _HomeTab(onSelectTab: _setIndex), // 2: ホーム
+      const AnswerHistoryScreen(), // 3: 履歴
+      const SettingsScreen(), // 4: 設定
     ];
   }
 
@@ -146,224 +148,249 @@ class _HomeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ==== ヘッダー（左：タイトル、右：通知ベル）====
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Stack(
+      children: [
+        // ===== 既存のホームUI（そのまま）=====
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // ==== ヘッダー（左：タイトル、右：通知ベル）====
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'NurAI',
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                        ),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'NurAI',
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            '看護師国家試験トレーニング',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 6),
-                      Text(
-                        '看護師国家試験トレーニング',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
-                        ),
+
+                      // ==== 通知ベル（未読バッジ付き）====
+                      FutureBuilder<Notice?>(
+                        future: NoticeService.latest(),
+                        builder: (context, snap) {
+                          return FutureBuilder<int>(
+                            future: NoticeService.unreadCount(),
+                            builder: (context, unreadSnap) {
+                              final unread = unreadSnap.data ?? 0;
+
+                              return Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.notifications_none_rounded,
+                                      size: 30,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => const NoticeListScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  if (unread > 0)
+                                    Positioned(
+                                      right: 4,
+                                      top: 4,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Text(
+                                          unread.toString(),
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
+                          );
+                        },
                       ),
                     ],
                   ),
 
-                  // ==== 通知ベル（未読バッジ付き）====
+                  const SizedBox(height: 16),
+
+                  // ==== 最新お知らせバナー（NEW対応） ====
                   FutureBuilder<Notice?>(
                     future: NoticeService.latest(),
                     builder: (context, snap) {
-                      return FutureBuilder<int>(
-                        future: NoticeService.unreadCount(),
-                        builder: (context, unreadSnap) {
-                          final unread = unreadSnap.data ?? 0;
+                      if (snap.connectionState == ConnectionState.waiting) {
+                        return const SizedBox(height: 24);
+                      }
+                      if (snap.hasError) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: Text(
+                            'お知らせの読み込みに失敗しました',
+                            style: theme.textTheme.bodySmall?.copyWith(color: Colors.red),
+                          ),
+                        );
+                      }
 
-                          return Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.notifications_none_rounded,
-                                  size: 30,
+                      final latest = snap.data;
+                      if (latest == null) return const SizedBox(height: 24);
+
+                      return Column(
+                        children: [
+                          _NoticeBanner(
+                            notice: latest,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const NoticeListScreen(),
                                 ),
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                      const NoticeListScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              if (unread > 0)
-                                Positioned(
-                                  right: 4,
-                                  top: 4,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Text(
-                                      unread.toString(),
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          );
-                        },
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                        ],
                       );
                     },
                   ),
-                ],
-              ),
 
-              const SizedBox(height: 16),
-
-              // ==== 最新お知らせバナー（NEW対応） ====
-              FutureBuilder<Notice?>(
-                future: NoticeService.latest(),
-                builder: (context, snap) {
-                  if (snap.connectionState == ConnectionState.waiting) {
-                    return const SizedBox(height: 24);
-                  }
-                  if (snap.hasError) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: Text(
-                        'お知らせの読み込みに失敗しました',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: Colors.red),
-                      ),
-                    );
-                  }
-
-                  final latest = snap.data;
-                  if (latest == null) return const SizedBox(height: 24);
-
-                  return Column(
-                    children: [
-                      _NoticeBanner(
-                        notice: latest,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const NoticeListScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  );
-                },
-              ),
-
-              // ==== メインCTA（問題生成）====
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton.icon(
-                  style: AppStyles.ctaButton(context),
-                  icon: const Icon(Icons.auto_awesome_rounded),
-                  label: const Text('問題を生成する'),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const QuestionScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // ==== セカンダリCTA（模試モード）====
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  style: AppStyles.ctaButton(context).copyWith(
-                    minimumSize:
-                    MaterialStateProperty.all(const Size.fromHeight(52)),
-                  ),
-                  icon: const Icon(Icons.assignment_turned_in_rounded),
-                  label: const Text('模試モードを始める'),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const MockExamConfigScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // ==== 過去問CTA（第113回 必修 午前）====
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: OutlinedButton.icon(
-                style: AppStyles.outlinedButton,
-                icon: const Icon(Icons.menu_book_rounded),
-                label: const Text('年度別過去問'),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PastExamYearListScreen(),
+                  // ==== メインCTA（問題生成）====
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      style: AppStyles.ctaButton(context),
+                      icon: const Icon(Icons.auto_awesome_rounded),
+                      label: const Text('問題を生成する'),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const QuestionScreen(),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ==== セカンダリCTA（模試モード）====
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      style: AppStyles.ctaButton(context).copyWith(
+                        minimumSize: MaterialStateProperty.all(const Size.fromHeight(52)),
+                      ),
+                      icon: const Icon(Icons.assignment_turned_in_rounded),
+                      label: const Text('模試モードを始める'),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const MockExamConfigScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // ==== 過去問CTA ====
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      style: AppStyles.outlinedButton,
+                      icon: const Icon(Icons.menu_book_rounded),
+                      label: const Text('年度別過去問'),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PastExamYearListScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ==== スコア & 解答履歴 ====
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: AppStyles.outlinedButton,
+                          icon: const Icon(Icons.bar_chart_rounded),
+                          label: const Text('スコア'),
+                          onPressed: () => onSelectTab(1),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: AppStyles.outlinedButton,
+                          icon: const Icon(Icons.history_rounded),
+                          label: const Text('解答履歴'),
+                          onPressed: () => onSelectTab(3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-
-              const SizedBox(height: 20),
-
-              // ==== スコア & 解答履歴 ====
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: AppStyles.outlinedButton,
-                      icon: const Icon(Icons.bar_chart_rounded),
-                      label: const Text('スコア'),
-                      onPressed: () => onSelectTab(1),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: AppStyles.outlinedButton,
-                      icon: const Icon(Icons.history_rounded),
-                      label: const Text('解答履歴'),
-                      onPressed: () => onSelectTab(3),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ),
         ),
+
+        // ===== 右下にキャラクターを浮かせる（ここだけがキャラ関連）=====
+        const _CharacterFloating(),
+      ],
+    );
+  }
+}
+
+/// =============================
+///  キャラクター表示（ホーム右下）
+///  ※ BottomNavShell は「表示するだけ」にするため、ここに隔離
+/// =============================
+class _CharacterFloating extends StatelessWidget {
+  const _CharacterFloating();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Positioned(
+      right: 0,
+      bottom: 0,
+      child: CharacterHudAnchor(
+        size: 200,
+        bubbleMaxWidth: 220,
       ),
     );
   }

@@ -3,17 +3,18 @@ import 'package:flutter/material.dart';
 
 /// ------------------------------------------------------------
 /// NurAI 全体テーマ（カラー / 角丸 / 影 / テキスト）
+/// ピンクベース（看護師イメージ）
 /// ------------------------------------------------------------
 
 class AppColors {
-  // メインブランドカラー（NurAIイメージのバイオレット系）
-  static const primary = Color(0xFF7C63FF);        // メイン紫
-  static const primaryDark = Color(0xFF5A46CC);    // 濃い紫
-  static const primaryLight = Color(0xFFD5CCFF);   // 薄い紫
+  // メインブランドカラー（看護師イメージのソフトピンク系）
+  static const primary = Color(0xFFFF8FA8);        // メインピンク
+  static const primaryDark = Color(0xFFE6778F);    // 濃いピンク
+  static const primaryLight = Color(0xFFFFD6DF);   // 薄いピンク
 
   // サーフェス
   static const surface = Colors.white;
-  static const background = Color(0xFFF6F7FB);     // アプリ共通背景
+  static const background = Color(0xFFFFF7F9);     // ほんのりピンク背景
 
   // テキスト
   static const textPrimary = Color(0xFF2E2E3A);
@@ -21,7 +22,7 @@ class AppColors {
 
   // ナビゲーションバー
   static const navBarBackground = Colors.white;
-  static const navBarIcon = Color(0xFF7A7A8A);
+  static const navBarIcon = Color(0xFF8A7A82);     // ピンクに馴染むグレー
 
   // 正解 / 不正解（スコア・Result用）
   static const correct = Color(0xFF26C281);
@@ -138,14 +139,14 @@ ThemeData buildAppTheme() {
       shape: CircleBorder(),
     ),
 
-    /// SnackBar（下から出る通知バー）
-    /// → floating にすることでレイアウトを押し上げず、FABも動かなくなる
+    /// SnackBar
     snackBarTheme: const SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: Colors.black87,
       contentTextStyle: TextStyle(color: Colors.white),
     ),
 
+    /// テキスト選択
     textSelectionTheme: const TextSelectionThemeData(
       cursorColor: AppColors.primary,
       selectionColor: AppColors.primaryLight,
