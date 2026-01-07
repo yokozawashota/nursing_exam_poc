@@ -1,20 +1,20 @@
 {
   "folder": "lib/utils",
-  "generatedAt": "2025-12-25T12:47:19.737593ZZ",
+  "generatedAt": "2025-12-29T06:41:16.357700ZZ",
   "count": 2,
   "items": [
     {
       "path": "lib/utils/choice_logic.dart",
       "file": "choice_logic.dart",
       "size": 4049,
-      "modified": "2025-12-25T12:47:00.115Z",
+      "modified": "2025-12-29T06:40:57.965Z",
       "content": "// lib/utils/choice_logic.dart\nimport 'dart:math';\n\n/// シャッフル後の選択肢と、正答ラベルを持ち回るためのDTO\nclass ShuffledChoices {\n  final Map<String, String> choices; // 例: {'A': '...', 'B': '...'}\n  final String correct;              // 例: 'B'\n  const ShuffledChoices({required this.choices, required this.correct});\n}\n\n/// 与えられた選択肢をシャッフルし、A,B,C,D,(E) で再ラベリングして返す。\n/// [rawChoices] は List でも Map でもOK\n/// [rawCorrect] は 'A' などのラベル もしくは index(int) も許容（Map の場合はラベル必須）。\n/// [maxChoices] で上限を指定（既定5。既存の4択想定とも互換）\n/// [rng] を渡すとテストで決定的にできます（未指定なら Random() ）。\n///\n/// 戻り値：ShuffledChoices（choices: Map, correct: ラベル）\nShuffledChoices shuffleWithRelabel(\n    dynamic rawChoices,\n    dynamic rawCorrect, {\n      int maxChoices = 5,\n      Random? rng,\n    }) {\n  final Random _rng = rng ?? Random();\n\n  // まず配列化（順序をもつ一次リスト化）\n  final List<String> list = _toList(rawChoices);\n\n  // 上限（2〜maxChoices）を適用\n  final int n = list.length.clamp(2, maxChoices);\n\n  // シャッフルに使うインデックス\n  final idxs = List<int>.generate(n, (i) => i);\n  idxs.shuffle(_rng);\n\n  // 新しいラベル\n  const labels = ['A', 'B', 'C', 'D', 'E', 'F']; // 将来拡張用に余裕あり\n  final newMap = <String, String>{};\n  for (var i = 0; i < n; i++) {\n    newMap[labels[i]] = list[idxs[i]];\n  }\n\n  // 正答の追随\n  String? correctLabel;\n\n  // 1) 数値インデックス\n  if (rawCorrect is int) {\n    final origIndex = rawCorrect;\n    if (origIndex >= 0 && origIndex < n) {\n      final newPos = idxs.indexOf(origIndex);\n      if (newPos >= 0) correctLabel = labels[newPos];\n    }\n  }\n  // 2) 文字ラベル or テキスト\n  else if (rawCorrect is String) {\n    final normalized = rawCorrect.trim();\n\n    // 2-1) 'A'.. をインデックスに解釈できるか\n    final origIndex = _labelToIndex(normalized.toUpperCase());\n    if (origIndex != null && origIndex < n) {\n      final newPos = idxs.indexOf(origIndex);\n      if (newPos >= 0) correctLabel = labels[newPos];\n    } else {\n      // 2-2) テキスト一致（大文字小文字・前後空白を無視）\n      final target = normalized.toLowerCase();\n      for (var i = 0; i < n; i++) {\n        if (list[idxs[i]].trim().toLowerCase() == target) {\n          correctLabel = labels[i];\n          break;\n        }\n      }\n    }\n  }\n  // 3) その他（オブジェクトなど）→ 文字列化して厳密一致\n  else if (rawCorrect != null) {\n    final target = rawCorrect.toString();\n    for (var i = 0; i < n; i++) {\n      if (list[idxs[i]] == target) {\n        correctLabel = labels[i];\n        break;\n      }\n    }\n  }\n\n  // フォールバック：\n  // 何も決まらないときは、元の0番要素が入った位置のラベルを正答にする（以前の常に 'A' より自然）\n  correctLabel ??= labels[idxs.indexOf(0).clamp(0, n - 1)];\n\n  return ShuffledChoices(choices: newMap, correct: correctLabel);\n}\n\nList<String> _toList(dynamic raw) {\n  if (raw is List) {\n    return raw\n        .map((e) => (e ?? '').toString())\n        .map((s) => s.trim())\n        .where((s) => s.isNotEmpty)\n        .toList();\n  }\n  if (raw is Map) {\n    // ラベル順 A,B,C,D,E... に並べ替えて拾う\n    final entries = raw.entries\n        .map((e) => MapEntry(e.key.toString().toUpperCase(), e.value.toString()))\n        .toList();\n    entries.sort((a, b) => a.key.compareTo(b.key));\n    return entries\n        .map((e) => e.value.trim())\n        .where((s) => s.isNotEmpty)\n        .toList();\n  }\n  // 文字列単体などは空扱い\n  return <String>[];\n}\n\nint? _labelToIndex(String s) {\n  if (s.length != 1) return null;\n  final code = s.codeUnitAt(0);\n  final a = 'A'.codeUnitAt(0);\n  final z = 'Z'.codeUnitAt(0);\n  if (code < a || code > z) return null;\n  return code - a;\n}"
     },
     {
       "path": "lib/utils/debug_utils.dart",
       "file": "debug_utils.dart",
       "size": 425,
-      "modified": "2025-12-25T12:47:00.115Z",
+      "modified": "2025-12-29T06:40:57.965Z",
       "content": "// lib/utils/debug_utils.dart\nimport 'package:characters/characters.dart';\n\nclass DebugUtils {\n  /// 1行化して先頭 maxChars だけ切り出す（サロゲートペアや結合文字も安全）。\n  static String firstLines(String s, {int maxChars = 300}) {\n    final t = s.replaceAll('\\n', ' ');\n    final chars = t.characters;\n    if (chars.length <= maxChars) return t;\n    return '${chars.take(maxChars)}...';\n  }\n}"
     }
   ]
