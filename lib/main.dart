@@ -1,10 +1,10 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';          // 画面向き制御用
+import 'package:flutter/services.dart';
 
-import 'theme/app_theme.dart';
-import 'widgets/bottom_nav_shell.dart';
-import 'screens/past_exam/past_exam_home_screen.dart';  // ★ 追加：過去問ホーム
+import 'package:nursing_exam_poc/app/bottom_nav_shell.dart';
+import 'package:nursing_exam_poc/features/past_exam/screens/past_exam_home_screen.dart';
+import 'package:nursing_exam_poc/shared/theme/app_theme.dart';
 
 Future<void> main() async {
   // runApp の前に初期化

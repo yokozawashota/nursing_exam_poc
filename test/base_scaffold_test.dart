@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:nursing_exam_poc/widgets/base_scaffold.dart';
+import 'package:nursing_exam_poc/shared/widgets/base_scaffold.dart';
 
 void main() {
   testWidgets('BaseScaffold がヘッダー/本文/フッターを表示する', (tester) async {

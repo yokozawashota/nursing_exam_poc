@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:nursing_exam_poc/services/question_service.dart';
+import 'package:nursing_exam_poc/features/practice/services/question_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

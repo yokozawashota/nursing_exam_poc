@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:nursing_exam_poc/models/answer_history.dart';
+import 'package:nursing_exam_poc/shared/models/answer_history.dart';
 
 void main() {
   setUp(() async {
