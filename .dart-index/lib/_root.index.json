@@ -1,13 +1,13 @@
 {
   "folder": "lib/_root",
-  "generatedAt": "2026-01-09T15:40:56.154013ZZ",
+  "generatedAt": "2026-01-11T13:38:11.517243ZZ",
   "count": 1,
   "items": [
     {
       "path": "lib/main.dart",
       "file": "main.dart",
       "size": 1181,
-      "modified": "2026-01-09T15:39:50.034Z",
+      "modified": "2026-01-11T13:37:49.091Z",
       "content": "// lib/main.dart\nimport 'package:flutter/material.dart';\nimport 'package:flutter/services.dart';\n\nimport 'package:nursing_exam_poc/app/bottom_nav_shell.dart';\nimport 'package:nursing_exam_poc/features/past_exam/screens/past_exam_home_screen.dart';\nimport 'package:nursing_exam_poc/shared/theme/app_theme.dart';\n\nFuture<void> main() async {\n  // runApp の前に初期化\n  WidgetsFlutterBinding.ensureInitialized();\n\n  // 画面向きを「縦（上向き）」に固定（逆さNG）\n  await SystemChrome.setPreferredOrientations([\n    DeviceOrientation.portraitUp,\n  ]);\n\n  runApp(const NurAIApp());\n}\n\nclass NurAIApp extends StatelessWidget {\n  const NurAIApp({super.key});\n\n  @override\n  Widget build(BuildContext context) {\n    return MaterialApp(\n      title: 'NurAI',\n      debugShowCheckedModeBanner: false,\n\n      // 新しいテーマ構造（buildAppTheme を使用）\n      theme: buildAppTheme(),\n\n      // ★ named route で過去問モードに飛べるようにしておく\n      routes: {\n        '/past-exam': (_) => const PastExamHomeScreen(),\n      },\n\n      // ← 常時ボトムナビ付き構成そのまま\n      home: const BottomNavShell(),\n    );\n  }\n}"
     }
   ]
