@@ -42,33 +42,29 @@ class QuestionService {
     final Map<String, String> choices =
     (raw['choices'] as Map? ?? {}).map((k, v) => MapEntry('$k', '$v'));
 
-    final List<String> correctLabels =
-    ((raw['correctAnswers'] as List?) ?? const [])
+    final List<String> correctLabels = ((raw['correctAnswers'] as List?) ?? const [])
         .map((e) => e.toString())
         .toList();
 
     final Map<String, String>? rationales =
     (raw['rationales'] as Map?)?.map((k, v) => MapEntry('$k', '$v'));
 
-    final String questionText =
-    (raw['question'] ?? raw['questionText'] ?? '').toString();
+    final String questionText = (raw['question'] ?? raw['questionText'] ?? '').toString();
 
     final String kind = (raw['questionKind'] ?? 'single').toString();
 
     final int requiredCorrectCount =
-        (raw['requiredCorrectCount'] as int?) ??
-            correctLabels.length.clamp(1, choices.length);
+        (raw['requiredCorrectCount'] as int?) ?? correctLabels.length.clamp(1, choices.length);
 
     // ★ sourceTag は NuraiQuestion 側で required（null不可）なのでフォールバック必須
     final String sourceTag = (raw['sourceTag']?.toString().trim() ?? '');
-    final String fixedSourceTag = sourceTag.isNotEmpty
-        ? sourceTag
-        : 'ai:${DateTime.now().millisecondsSinceEpoch}';
+    final String fixedSourceTag =
+    sourceTag.isNotEmpty ? sourceTag : 'ai:${DateTime.now().millisecondsSinceEpoch}';
 
     // ★ 画像関連（AI生成は基本なし。将来rawに入れるならここで拾える）
     final String? imagePath = raw['imagePath']?.toString();
-    final bool imageRequired =
-        (raw['imageRequired'] == true) || ((imagePath ?? '').trim().isNotEmpty && raw['imageRequired'] == true);
+    final bool imageRequired = (raw['imageRequired'] == true) ||
+        ((imagePath ?? '').trim().isNotEmpty && raw['imageRequired'] == true);
 
     return NuraiQuestion(
       questionText: questionText,
@@ -102,6 +98,27 @@ class QuestionService {
     String? mid,
     String? scenarioAspect,
   }) async {
+    // =========================
+    // ★ 計測ログ（原因可視化）
+    // =========================
+    final swTotal = Stopwatch()..start();
+    int tSettingsMs = 0;
+    int tPickMs = 0;
+    int tPromptMs = 0;
+    int tHttpMs = 0;
+    int tDecodeMs = 0;
+    int tParseMs = 0;
+    int tPostMs = 0;
+
+    int lenSystem = 0;
+    int lenUser = 0;
+    int lenRequestBody = 0;
+    int lenResponseBody = 0;
+    int lenContent = 0;
+
+    String resolvedMidForLog = '';
+    String topicForLog = '';
+
     final apiKey = await SettingsService.getApiKey();
     final model = await SettingsService.getModel() ?? 'gpt-4o-mini';
     if (apiKey == null || apiKey.isEmpty) {
@@ -109,10 +126,13 @@ class QuestionService {
     }
 
     // ===== ユーザー設定の読み取り =====
+    final swSettings = Stopwatch()..start();
     final choiceMode = await SettingsService.getChoiceMode() ?? 'auto';
     final probFiveChoice = (await SettingsService.getFiveChoiceProbability()) ?? 0;
     final probMultiple = (await SettingsService.getMultipleKindProbability()) ?? 0;
     final probIncorrect = (await SettingsService.getIncorrectKindProbability()) ?? 0;
+    swSettings.stop();
+    tSettingsMs = swSettings.elapsedMilliseconds;
 
     debugPrint(
       '[log] [SETTINGS] ChoiceMode=$choiceMode | 5択確率=${probFiveChoice}% | '
@@ -160,6 +180,7 @@ class QuestionService {
     );
 
     // ===== mid / topic 決定 =====
+    final swPick = Stopwatch()..start();
     final bool isHisshu = domain == kHisshuCategory;
     String? resolvedMid;
     String? topic;
@@ -222,7 +243,15 @@ class QuestionService {
       }
     }
 
+    swPick.stop();
+    tPickMs = swPick.elapsedMilliseconds;
+
+    resolvedMidForLog = (resolvedMid ?? '').trim();
+    topicForLog = (topic ?? '').trim();
+
     // ===== プロンプト生成 =====
+    final swPrompt = Stopwatch()..start();
+
     final system = PromptBuilder.buildSystemPrompt(
       desiredKind: desiredKind,
       desiredChoiceCount: desiredChoiceCount,
@@ -241,39 +270,69 @@ class QuestionService {
       requiredCorrectCount: requiredCorrectCount,
     );
 
+    swPrompt.stop();
+    tPromptMs = swPrompt.elapsedMilliseconds;
+
+    lenSystem = system.length;
+    lenUser = user.length;
+
     // ===== LLM 呼び出し =====
+    final swHttp = Stopwatch()..start();
+
+    final reqMap = {
+      'model': model,
+      'temperature': 0.4,
+      'response_format': {'type': 'json_object'},
+      'messages': [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user},
+      ],
+    };
+    final reqBody = jsonEncode(reqMap);
+    lenRequestBody = reqBody.length;
+
     final res = await http.post(
       Uri.parse(_endpoint),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $apiKey',
       },
-      body: jsonEncode({
-        'model': model,
-        'temperature': 0.4,
-        'response_format': {'type': 'json_object'},
-        'messages': [
-          {'role': 'system', 'content': system},
-          {'role': 'user', 'content': user},
-        ],
-      }),
+      body: reqBody,
     );
 
+    swHttp.stop();
+    tHttpMs = swHttp.elapsedMilliseconds;
+
     if (res.statusCode < 200 || res.statusCode >= 300) {
+      // 失敗時も、計測ログだけは出す（原因可視化）
+      swTotal.stop();
+      final bodyPreview = _firstLines(utf8.decode(res.bodyBytes), maxChars: 240);
+      debugPrint(
+        '[perf] [QS] FAIL status=${res.statusCode} total=${swTotal.elapsedMilliseconds}ms | '
+            'settings=${tSettingsMs}ms pick=${tPickMs}ms prompt=${tPromptMs}ms http=${tHttpMs}ms',
+      );
+      debugPrint('[perf] [QS] FAIL response(head)=$bodyPreview');
       throw StateError('OpenAIリクエスト失敗 (${res.statusCode}): ${res.body}');
     }
 
     // ===== content の安全な抽出 =====
-    final Map<String, dynamic> root =
-    jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final swDecode = Stopwatch()..start();
+    final decodedBody = utf8.decode(res.bodyBytes);
+    lenResponseBody = decodedBody.length;
+
+    final Map<String, dynamic> root = jsonDecode(decodedBody) as Map<String, dynamic>;
     final List choicesRoot = (root['choices'] as List? ?? const []);
-    final String content = choicesRoot.isNotEmpty
-        ? (choicesRoot.first['message']?['content']?.toString() ?? '')
-        : '';
+    final String content =
+    choicesRoot.isNotEmpty ? (choicesRoot.first['message']?['content']?.toString() ?? '') : '';
+    lenContent = content.length;
+
+    swDecode.stop();
+    tDecodeMs = swDecode.elapsedMilliseconds;
 
     debugPrint('[log] [QS] raw content (head) = ${_firstLines(content)}');
 
     // ===== パース & 最終整形 =====
+    final swParse = Stopwatch()..start();
     final out = ResponseParser.parseContentToQuestion(
       content,
       difficulty: difficulty,
@@ -282,6 +341,8 @@ class QuestionService {
       mid: resolvedMid,
       topic: topic,
     );
+    swParse.stop();
+    tParseMs = swParse.elapsedMilliseconds;
 
     final Map<String, String>? choices =
     (out['choices'] as Map?)?.map((k, v) => MapEntry(k.toString(), v.toString()));
@@ -289,6 +350,7 @@ class QuestionService {
     final List<String> correct =
         ((out['correctAnswers'] as List?)?.map((e) => e.toString()).toList()) ?? [];
 
+    final swPost = Stopwatch()..start();
     if (choices != null) {
       // 1) 正答が choices に含まれない場合の安全弁
       final present = choices.keys.toSet();
@@ -331,12 +393,43 @@ class QuestionService {
         out['rationales'] = remapped.rationales; // 根拠も同じ順番に付け替え
       }
     }
+    swPost.stop();
+    tPostMs = swPost.elapsedMilliseconds;
 
     debugPrint(
       '[log] [QS] parsed => kind=${out['questionKind']}, '
           'choices=${(out['choices'] as Map?)?.keys.join(',') ?? ''} '
           '(len=${(out['choices'] as Map?)?.length ?? 0}), '
           'correct=${(out['correctAnswers'] as List?)?.join(',') ?? ''}',
+    );
+
+    // =========================
+    // ★ 計測ログ出力（最後）
+    // =========================
+    swTotal.stop();
+
+    // out を最終JSONとして再エンコードしたサイズ（返すデータの概算）
+    int outJsonLen = 0;
+    try {
+      outJsonLen = jsonEncode(out).length;
+    } catch (_) {
+      outJsonLen = -1;
+    }
+
+    debugPrint(
+      '[perf] [QS] OK total=${swTotal.elapsedMilliseconds}ms | '
+          'settings=${tSettingsMs}ms pick=${tPickMs}ms prompt=${tPromptMs}ms '
+          'http=${tHttpMs}ms decode=${tDecodeMs}ms parse=${tParseMs}ms post=${tPostMs}ms',
+    );
+    debugPrint(
+      '[perf] [QS] meta model=$model diff=$difficulty domain=$domain major=$major '
+          'mid=${resolvedMidForLog.isEmpty ? "-" : resolvedMidForLog} '
+          'topic=${topicForLog.isEmpty ? "-" : topicForLog} '
+          'kind=$desiredKind choices=$desiredChoiceCount correctN=$requiredCorrectCount',
+    );
+    debugPrint(
+      '[perf] [QS] size system=$lenSystem user=$lenUser reqBody=$lenRequestBody '
+          'resBody=$lenResponseBody content=$lenContent outJson=$outJsonLen',
     );
 
     return out;
@@ -359,8 +452,7 @@ class QuestionService {
       }) {
     if (!isMulti || requiredCorrectCount <= 1) return q;
 
-    final already =
-    RegExp(r'[0-9一二三四五六七八九十]+\s*つ\s*選んでください').hasMatch(q);
+    final already = RegExp(r'[0-9一二三四五六七八九十]+\s*つ\s*選んでください').hasMatch(q);
     if (already) return q;
 
     return '$q ${requiredCorrectCount}つ選んでください';

@@ -1,4 +1,5 @@
 // lib/features/practice/screens/question_screen.dart
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -43,7 +44,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
     'A': 'A. 対象や家族に切れ目のない支援を提供するための継続した看護',
     'B': 'B. 複合的な状況にある対象や、複合的に提供されている看護の状況を判断し、危険を回避する取組み',
     'C': 'C. 看護の提供者が、看護場面において自身の安全を確保するための総合的な判断や対応',
-    'D': 'D. 発災からの経過に応じて被災者に提供される診療や支援を促進するための看護',
+    'D': 'D. 発災からの経過に応じて被災者に提供されている診療や支援を促進するための看護',
     'E': 'E. A～Dを促進するための多職種連携',
   };
 
@@ -91,12 +92,89 @@ class _QuestionScreenState extends State<QuestionScreen> {
   // 履歴保存用メタ
   Map<String, dynamic>? _meta;
 
+  // ==========================
+  // ローディングUI（生成中コメント＋擬似進捗）
+  // ==========================
+  Timer? _loadingMessageTimer;
+  Timer? _loadingProgressTimer;
+
+  int _loadingMessageIndex = 0;
+  double _loadingProgress = 0.0;
+
+  static const List<String> _loadingMessages = [
+    '問題を生成しています…',
+    '選択肢の整合性をチェック中…',
+    '国試っぽい文章に整形中…',
+    '正答と解説を最終確認中…',
+    'まもなく表示します…',
+  ];
+
   @override
   void initState() {
     super.initState();
     _selectedHisshuMajor =
     hisshuMajorItems.isNotEmpty ? hisshuMajorItems.first : '';
     _resetGeneralMajorAndMid(_selectedDomain);
+  }
+
+  @override
+  void dispose() {
+    _stopLoadingUi();
+    super.dispose();
+  }
+
+  void _startLoadingUi() {
+    _stopLoadingUi();
+
+    _loadingMessageIndex = 0;
+    _loadingProgress = 0.0;
+
+    // コメントは「1周で止める」：最後まで行ったら固定
+    _loadingMessageTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (!mounted || !_isLoading) return;
+      if (_loadingMessageIndex < _loadingMessages.length - 1) {
+        setState(() => _loadingMessageIndex++);
+      }
+    });
+
+    // 擬似進捗は単調増加（0→99%で止める）
+    _loadingProgressTimer =
+        Timer.periodic(const Duration(milliseconds: 80), (_) {
+          if (!mounted || !_isLoading) return;
+
+          // 99%まではじわじわ増える（速すぎない体感）
+          if (_loadingProgress < 0.99) {
+            final next = _loadingProgress + 0.008; // 0.8%/tickくらい
+            setState(() => _loadingProgress = next.clamp(0.0, 0.99));
+          } else {
+            // 99%到達後は固定
+            _loadingProgress = 0.99;
+          }
+        });
+  }
+
+  void _stopLoadingUi() {
+    _loadingMessageTimer?.cancel();
+    _loadingMessageTimer = null;
+
+    _loadingProgressTimer?.cancel();
+    _loadingProgressTimer = null;
+  }
+
+  Future<void> _completeLoadingAndWait() async {
+    if (!mounted) return;
+
+    // タイマーを止めて、以降は絶対に進捗が戻らないようにする
+    _stopLoadingUi();
+
+    // コメントは最後に固定
+    setState(() {
+      _loadingMessageIndex = _loadingMessages.length - 1;
+      _loadingProgress = 1.0; // 100%固定
+    });
+
+    // 500ms待ってから表示（心理的に気持ちいい）
+    await Future.delayed(const Duration(milliseconds: 500));
   }
 
   void _resetGeneralMajorAndMid(String domain) {
@@ -119,45 +197,31 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
   // ==========================
   // 分野・大項目・中項目の最終決定
-  // （ランダムで決まった結果もここで確定させる）
   // ==========================
   _ResolvedCategory _resolveCategoryForGeneration() {
-    // 必修はこの関数は経由しない想定（_generateQuestion 側で処理）
     if (_mode == modeHisshu) {
       return _ResolvedCategory('必修', _selectedHisshuMajor, null);
     }
 
-    final List<String> domainList = _mode == modeSituational
-        ? situationalDomains
-        : CategoryRepository.generalDomains();
+    final List<String> domainList =
+    _mode == modeSituational ? situationalDomains : CategoryRepository.generalDomains();
 
     final rand = Random(DateTime.now().microsecondsSinceEpoch);
 
-    // ↓ ユーザーが「ランダム」を選んだかどうかのフラグ
     final bool domainRandomRequested = _selectedDomain == kRandomDomainId;
     final bool majorRandomRequested = _selectedMajor == kRandomMajorId;
 
     // ---- 分野 ----
     String domain = _selectedDomain;
     if (domainRandomRequested || !domainList.contains(domain)) {
-      if (domainList.isNotEmpty) {
-        domain = domainList[rand.nextInt(domainList.length)];
-      } else {
-        domain = '';
-      }
+      domain = domainList.isNotEmpty ? domainList[rand.nextInt(domainList.length)] : '';
     }
 
     // ---- 大項目 ----
     final majorsOfDomain = CategoryRepository.generalMajorsOf(domain);
     String major = _selectedMajor;
-    if (majorRandomRequested ||
-        major.isEmpty ||
-        !majorsOfDomain.contains(major)) {
-      if (majorsOfDomain.isNotEmpty) {
-        major = majorsOfDomain[rand.nextInt(majorsOfDomain.length)];
-      } else {
-        major = '';
-      }
+    if (majorRandomRequested || major.isEmpty || !majorsOfDomain.contains(major)) {
+      major = majorsOfDomain.isNotEmpty ? majorsOfDomain[rand.nextInt(majorsOfDomain.length)] : '';
     }
 
     // ---- 中項目 ----
@@ -165,9 +229,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
     bool midRandomUsed = false;
     if (_useMid) {
       final mids = CategoryRepository.generalMidsOf(domain, major);
-      if (_selectedMid != null &&
-          _selectedMid!.isNotEmpty &&
-          mids.contains(_selectedMid)) {
+      if (_selectedMid != null && _selectedMid!.isNotEmpty && mids.contains(_selectedMid)) {
         mid = _selectedMid;
       } else if (mids.isNotEmpty) {
         midRandomUsed = true;
@@ -177,7 +239,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
       mid = null;
     }
 
-    // ▼ ログ出力（ランダム指定がどう解決されたかを確認できる）
     debugPrint(
       '[log] [QSCREEN] resolved category '
           '(mode=$_mode, domainRandom=$domainRandomRequested, '
@@ -199,7 +260,14 @@ class _QuestionScreenState extends State<QuestionScreen> {
       _userAnswers = {};
       _questionKind = 'single';
       _meta = null;
+
+      _loadingMessageIndex = 0;
+      _loadingProgress = 0.0;
     });
+
+    _startLoadingUi();
+
+    Map<String, dynamic>? data;
 
     try {
       final difficulty = _mode;
@@ -210,7 +278,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
       String? scenarioAspectCode;
 
       if (_mode == modeHisshu) {
-        // 必修は分野「必修」、大項目は UI 選択値そのまま
         domainArg = '必修';
         majorArg = _selectedHisshuMajor;
         midArg = null;
@@ -220,7 +287,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
               'mode=$_mode | domain=$domainArg | major=$majorArg | mid=(none)',
         );
       } else {
-        // 一般／状況設定はランダム指定を解決
         final resolved = _resolveCategoryForGeneration();
         domainArg = resolved.domain;
         majorArg = resolved.major;
@@ -228,8 +294,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
         if (_mode == modeSituational) {
           final bool wasRandomAspect = _selectedScenarioAspectCode == null;
-          scenarioAspectCode =
-              _selectedScenarioAspectCode ?? _randomScenarioAspectCode();
+          scenarioAspectCode = _selectedScenarioAspectCode ?? _randomScenarioAspectCode();
 
           debugPrint(
             '[log] [QS] scenarioAspect resolved => '
@@ -239,7 +304,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
         }
       }
 
-      final data = await QuestionService.fetchQuestion(
+      data = await QuestionService.fetchQuestion(
         difficulty: difficulty,
         domain: domainArg,
         major: majorArg,
@@ -247,40 +312,43 @@ class _QuestionScreenState extends State<QuestionScreen> {
         scenarioAspect: scenarioAspectCode,
       );
 
+      // ✅ ここで100%にして固定 → 500ms待つ
+      await _completeLoadingAndWait();
+
+      if (!mounted) return;
+
+      final d = data;
+
       setState(() {
-        _questionText = (data['question'] as String?)?.trim();
+        _questionText = (d?['question'] as String?)?.trim();
 
-        // choices（Map<String,String>）へ正規化
-        final rawChoices = data['choices'] as Map?;
-        _choices =
-            rawChoices?.map((k, v) => MapEntry(k.toString(), v.toString()));
+        final rawChoices = d?['choices'] as Map?;
+        _choices = rawChoices?.map((k, v) => MapEntry(k.toString(), v.toString()));
 
-        // 正解（複数対応）
-        _correctAnswers = (data['correctAnswers'] as List?)
+        _correctAnswers = (d?['correctAnswers'] as List?)
             ?.map((e) => e.toString())
             .toList() ??
-            [(data['correct'] ?? '').toString()];
+            [(d?['correct'] ?? '').toString()];
 
-        // 問題タイプ
-        _questionKind = (data['questionKind'] as String?) ?? 'single';
+        _questionKind = (d?['questionKind'] as String?) ?? 'single';
 
-        _explanation = (data['explanation'] as String?) ?? '';
-        final rawRat = data['rationales'] as Map?;
-        _rationales =
-            rawRat?.map((k, v) => MapEntry(k.toString(), v.toString()));
+        _explanation = (d?['explanation'] as String?) ?? '';
+        final rawRat = d?['rationales'] as Map?;
+        _rationales = rawRat?.map((k, v) => MapEntry(k.toString(), v.toString()));
 
-        final rawMeta = data['meta'] as Map?;
+        final rawMeta = d?['meta'] as Map?;
         _meta = rawMeta?.map((k, v) => MapEntry(k.toString(), v));
+
+        _isLoading = false;
       });
     } catch (e) {
+      _stopLoadingUi();
       if (!mounted) return;
+      setState(() => _isLoading = false);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('問題の生成に失敗しました：$e')),
       );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
   }
 
@@ -298,7 +366,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
       return;
     }
 
-    // 履歴保存（複数解答対応）
     try {
       final rec = AnswerRecord(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -328,7 +395,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
     if (!mounted) return;
 
-    // 結果画面へ
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ResultScreen(
@@ -349,16 +415,153 @@ class _QuestionScreenState extends State<QuestionScreen> {
     );
   }
 
+  Widget _buildGeneratingCard() {
+    final msg = _loadingMessages[
+    _loadingMessageIndex.clamp(0, _loadingMessages.length - 1)];
+
+    final percent = (_loadingProgress * 100).clamp(0, 100).toInt();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 10,
+            offset: Offset(0, 6),
+            color: Color(0x12000000),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // ✅ カード内のくるくるは「残してOK」なので残す
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  msg,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '$percent%',
+                style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: _loadingProgress.clamp(0.0, 1.0),
+              minHeight: 8,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '※通信状況やモデルにより数秒〜数十秒かかることがあります',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final domainList = _mode == modeSituational
         ? situationalDomains
         : CategoryRepository.generalDomains();
 
-    // select_incorrect も含めて「正答が複数」ならチェックボックスモード
     final bool isMulti = _questionKind == 'multiple' ||
         _questionKind == 'select_incorrect' ||
         (_correctAnswers?.length ?? 0) >= 2;
+
+    // ✅ 上部の大きいくるくる対策：
+    // ローディング中は QuestionControls 側の isLoading 表示を使わず、
+    // こちらのカードだけで表示する（操作はIgnorePointerで禁止）
+    final controls = IgnorePointer(
+      ignoring: _isLoading,
+      child: QuestionControls(
+        mode: _mode,
+        onModeChanged: (val) {
+          if (_isLoading) return;
+          setState(() {
+            _mode = val;
+            if (_mode != modeHisshu) {
+              final useList = _mode == modeSituational
+                  ? situationalDomains
+                  : CategoryRepository.generalDomains();
+              final dom = useList.contains(_selectedDomain)
+                  ? _selectedDomain
+                  : (useList.isNotEmpty ? useList.first : _selectedDomain);
+              _resetGeneralMajorAndMid(dom);
+            }
+          });
+        },
+        // ★ここがポイント：ローディング中でも「controls側のくるくる」を出さない
+        isLoading: false,
+        onGeneratePressed: _isLoading ? () {} : _generateQuestion,
+
+        domainItems: domainList,
+        selectedDomain: domainList.contains(_selectedDomain)
+            ? _selectedDomain
+            : (domainList.isNotEmpty ? domainList.first : _selectedDomain),
+        onDomainChanged: (val) {
+          if (_isLoading) return;
+          _resetGeneralMajorAndMid(val);
+        },
+        majorItems: CategoryRepository.generalMajorsOf(_selectedDomain),
+        selectedMajor: _selectedMajor,
+        onMajorChanged: (val) {
+          if (_isLoading) return;
+          final mids = CategoryRepository.generalMidsOf(_selectedDomain, val);
+          setState(() {
+            _selectedMajor = val;
+            _selectedMid = mids.isNotEmpty ? mids.first : null;
+          });
+        },
+        useMid: _useMid,
+        onUseMidChanged: (v) {
+          if (_isLoading) return;
+          setState(() => _useMid = v);
+        },
+        midItems: CategoryRepository.generalMidsOf(_selectedDomain, _selectedMajor),
+        selectedMid: _selectedMid,
+        onMidChanged: (val) {
+          if (_isLoading) return;
+          setState(() => _selectedMid = val);
+        },
+
+        hisshuMajorItems: hisshuMajorItems,
+        selectedHisshuMajor: hisshuMajorItems.contains(_selectedHisshuMajor)
+            ? _selectedHisshuMajor
+            : (hisshuMajorItems.isNotEmpty ? hisshuMajorItems.first : ''),
+        onHisshuMajorChanged: (val) {
+          if (_isLoading) return;
+          setState(() => _selectedHisshuMajor = val);
+        },
+
+        scenarioAspects: _scenarioAspects,
+        selectedScenarioAspectCode: _selectedScenarioAspectCode,
+        onScenarioAspectChanged: (val) {
+          if (_isLoading) return;
+          setState(() => _selectedScenarioAspectCode = val);
+        },
+      ),
+    );
 
     return BaseScaffold(
       title: '出題',
@@ -368,82 +571,18 @@ class _QuestionScreenState extends State<QuestionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ====== コントロール部 ======
-              QuestionControls(
-                mode: _mode,
-                onModeChanged: (val) {
-                  setState(() {
-                    _mode = val;
-                    if (_mode != modeHisshu) {
-                      final useList = _mode == modeSituational
-                          ? situationalDomains
-                          : CategoryRepository.generalDomains();
-                      final dom = useList.contains(_selectedDomain)
-                          ? _selectedDomain
-                          : (useList.isNotEmpty
-                          ? useList.first
-                          : _selectedDomain);
-                      _resetGeneralMajorAndMid(dom);
-                    }
-                  });
-                },
-                isLoading: _isLoading,
-                onGeneratePressed: _generateQuestion,
+              controls,
+              const SizedBox(height: 16),
 
-                // 一般/状況設定
-                domainItems: domainList,
-                selectedDomain: domainList.contains(_selectedDomain)
-                    ? _selectedDomain
-                    : (domainList.isNotEmpty
-                    ? domainList.first
-                    : _selectedDomain),
-                onDomainChanged: (val) => _resetGeneralMajorAndMid(val),
-                majorItems:
-                CategoryRepository.generalMajorsOf(_selectedDomain),
-                selectedMajor: _selectedMajor,
-                onMajorChanged: (val) {
-                  final mids =
-                  CategoryRepository.generalMidsOf(_selectedDomain, val);
-                  setState(() {
-                    _selectedMajor = val;
-                    _selectedMid = mids.isNotEmpty ? mids.first : null;
-                  });
-                },
-                useMid: _useMid,
-                onUseMidChanged: (v) => setState(() => _useMid = v),
-                midItems: CategoryRepository.generalMidsOf(
-                    _selectedDomain, _selectedMajor),
-                selectedMid: _selectedMid,
-                onMidChanged: (val) => setState(() => _selectedMid = val),
+              if (_isLoading) _buildGeneratingCard(),
+              if (_isLoading) const SizedBox(height: 16),
 
-                // 必修
-                hisshuMajorItems: hisshuMajorItems,
-                selectedHisshuMajor:
-                hisshuMajorItems.contains(_selectedHisshuMajor)
-                    ? _selectedHisshuMajor
-                    : (hisshuMajorItems.isNotEmpty
-                    ? hisshuMajorItems.first
-                    : ''),
-                onHisshuMajorChanged: (val) =>
-                    setState(() => _selectedHisshuMajor = val),
-
-                // 状況設定
-                scenarioAspects: _scenarioAspects,
-                selectedScenarioAspectCode: _selectedScenarioAspectCode,
-                onScenarioAspectChanged: (val) =>
-                    setState(() => _selectedScenarioAspectCode = val),
-              ),
-
-              const SizedBox(height: 24),
-
-              // ====== 出題ブロック ======
               if (_questionText != null && _choices != null)
                 QuestionBlock(
                   questionText: _questionText!,
                   choices: _choices!,
                   questionKind: _questionKind,
 
-                  // 単一選択
                   selectedLabel: !isMulti && _userAnswers.isNotEmpty
                       ? _userAnswers.first
                       : null,
@@ -451,7 +590,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
                       ? (val) => setState(() => _userAnswers = {val})
                       : null,
 
-                  // 複数選択（select_incorrect を含む）
                   selectedLabels: isMulti ? _userAnswers.toList() : null,
                   onToggle: isMulti
                       ? (val) {

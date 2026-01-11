@@ -15,7 +15,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _apiController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  String _selectedModel = 'gpt-4o-mini';
+  // ★ デフォルトは gpt-4.1-mini
+  String _selectedModel = 'gpt-4.1-mini';
 
   // 出題確率（0〜100）
   int _fiveChoiceProb = 0;
@@ -24,6 +25,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool _obscureApi = true;
   bool _loading = true;
+
+  // ★ この画面で選択可能なモデル一覧
+  static const Set<String> _supportedModels = {
+    'gpt-4.1-mini',
+    'gpt-5.1-mini',
+    'gpt-5.1',
+  };
 
   @override
   void initState() {
@@ -39,7 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _load() async {
     final api = await SettingsService.getApiKey();
-    final model = await SettingsService.getModel();
+    final savedModel = await SettingsService.getModel();
 
     final five = await SettingsService.getFiveChoiceProbability() ?? 0;
     final incorrect = await SettingsService.getIncorrectKindProbability() ?? 0;
@@ -49,7 +57,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() {
       _apiController.text = api ?? '';
-      _selectedModel = model ?? 'gpt-4o-mini';
+
+      // ★ 保存済みモデルが items に存在しない場合は安全にフォールバック
+      _selectedModel = _supportedModels.contains(savedModel)
+          ? savedModel!
+          : 'gpt-4.1-mini';
+
       _fiveChoiceProb = _clampPercent(five);
       _incorrectProb = _clampPercent(incorrect);
       _multipleProb = _clampPercent(multiple);
@@ -63,7 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     await SettingsService.setApiKey(_apiController.text.trim());
-    await SettingsService.setModel(_selectedModel.trim());
+    await SettingsService.setModel(_selectedModel);
     await SettingsService.setFiveChoiceProbability(_fiveChoiceProb);
     await SettingsService.setIncorrectKindProbability(_incorrectProb);
     await SettingsService.setMultipleKindProbability(_multipleProb);
@@ -112,9 +125,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? Icons.visibility
                             : Icons.visibility_off,
                       ),
-                      onPressed: () => setState(
-                            () => _obscureApi = !_obscureApi,
-                      ),
+                      onPressed: () =>
+                          setState(() => _obscureApi = !_obscureApi),
                     ),
                   ),
                   validator: (v) {
@@ -138,12 +150,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: _selectedModel,
                   items: const [
                     DropdownMenuItem(
-                      value: 'gpt-4o-mini',
-                      child: Text('gpt-4o-mini'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'gpt-4o',
-                      child: Text('gpt-4o'),
+                      value: 'gpt-4.1-mini',
+                      child:
+                      Text('gpt-4.1-mini（高速・問題生成おすすめ）'),
                     ),
                     DropdownMenuItem(
                       value: 'gpt-5.1-mini',
@@ -151,7 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     DropdownMenuItem(
                       value: 'gpt-5.1',
-                      child: Text('gpt-5.1'),
+                      child: Text('gpt-5.1（高精度・分析向け）'),
                     ),
                   ],
                   onChanged: (val) {
@@ -176,8 +185,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   label: '5択が出る確率',
                   value: _fiveChoiceProb,
                   onChanged: (v) => setState(
-                        () => _fiveChoiceProb = _clampPercent(v),
-                  ),
+                          () => _fiveChoiceProb = _clampPercent(v)),
                 ),
                 const SizedBox(height: 20),
 
@@ -185,8 +193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   label: '誤答（間違いを選べ）問題の確率',
                   value: _incorrectProb,
                   onChanged: (v) => setState(
-                        () => _incorrectProb = _clampPercent(v),
-                  ),
+                          () => _incorrectProb = _clampPercent(v)),
                 ),
                 const SizedBox(height: 20),
 
@@ -194,8 +201,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   label: '複数選択（正解が2つ）問題の確率',
                   value: _multipleProb,
                   onChanged: (v) => setState(
-                        () => _multipleProb = _clampPercent(v),
-                  ),
+                          () => _multipleProb = _clampPercent(v)),
                 ),
                 const SizedBox(height: 40),
 
@@ -217,7 +223,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // ===== スライダー部品 =====
-
   Widget _buildSlider({
     required String label,
     required int value,

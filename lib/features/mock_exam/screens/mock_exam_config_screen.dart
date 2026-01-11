@@ -13,7 +13,10 @@ class MockExamConfigScreen extends StatefulWidget {
 }
 
 class _MockExamConfigScreenState extends State<MockExamConfigScreen> {
+  // mix / hisshu / ippan / jokyo
   String _examType = 'mix';
+
+  // 10 / 30 / 60
   int _questionCount = 30;
 
   @override
@@ -57,7 +60,9 @@ class _MockExamConfigScreenState extends State<MockExamConfigScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 8),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,7 +201,7 @@ class _MockExamConfigScreenState extends State<MockExamConfigScreen> {
             MaterialPageRoute(
               builder: (_) => MockExamScreen(
                 questionCount: _questionCount,
-                examType: _examType,
+                examType: _examType, // ★ MockExamScreen 側が String を受ける前提
               ),
             ),
           );
