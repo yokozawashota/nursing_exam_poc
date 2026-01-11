@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-12-29T06:41:16.357700ZZ",
+  "generatedAt": "2026-01-09T15:40:56.154013ZZ",
   "folders": [
     {
       "folder": "lib/_root",
@@ -8,10 +8,10 @@
       "count": 1
     },
     {
-      "folder": "lib/ai_analysis",
-      "index": "lib/ai_analysis/index.json",
-      "flatIndex": "lib/ai_analysis.index.json",
-      "count": 7
+      "folder": "lib/app",
+      "index": "lib/app/index.json",
+      "flatIndex": "lib/app.index.json",
+      "count": 1
     },
     {
       "folder": "lib/data",
@@ -20,40 +20,16 @@
       "count": 13
     },
     {
-      "folder": "lib/models",
-      "index": "lib/models/index.json",
-      "flatIndex": "lib/models.index.json",
-      "count": 6
+      "folder": "lib/features",
+      "index": "lib/features/index.json",
+      "flatIndex": "lib/features.index.json",
+      "count": 51
     },
     {
-      "folder": "lib/screens",
-      "index": "lib/screens/index.json",
-      "flatIndex": "lib/screens.index.json",
-      "count": 25
-    },
-    {
-      "folder": "lib/services",
-      "index": "lib/services/index.json",
-      "flatIndex": "lib/services.index.json",
-      "count": 16
-    },
-    {
-      "folder": "lib/theme",
-      "index": "lib/theme/index.json",
-      "flatIndex": "lib/theme.index.json",
-      "count": 1
-    },
-    {
-      "folder": "lib/utils",
-      "index": "lib/utils/index.json",
-      "flatIndex": "lib/utils.index.json",
-      "count": 2
-    },
-    {
-      "folder": "lib/widgets",
-      "index": "lib/widgets/index.json",
-      "flatIndex": "lib/widgets.index.json",
-      "count": 12
+      "folder": "lib/shared",
+      "index": "lib/shared/index.json",
+      "flatIndex": "lib/shared.index.json",
+      "count": 14
     }
   ]
 }
