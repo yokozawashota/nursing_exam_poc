@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-01-09T15:40:56.154013ZZ",
+  "generatedAt": "2026-03-12T14:05:53.890121ZZ",
   "folders": [
     {
       "folder": "lib/_root",
@@ -23,13 +23,19 @@
       "folder": "lib/features",
       "index": "lib/features/index.json",
       "flatIndex": "lib/features.index.json",
-      "count": 51
+      "count": 63
+    },
+    {
+      "folder": "lib/questioning",
+      "index": "lib/questioning/index.json",
+      "flatIndex": "lib/questioning.index.json",
+      "count": 13
     },
     {
       "folder": "lib/shared",
       "index": "lib/shared/index.json",
       "flatIndex": "lib/shared.index.json",
-      "count": 14
+      "count": 10
     }
   ]
 }
