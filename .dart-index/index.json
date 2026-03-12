@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-03-12T14:05:53.890121ZZ",
+  "folders": [
+    {
+      "folder": "lib/_root",
+      "index": "lib/_root/index.json",
+      "flatIndex": "lib/_root.index.json",
+      "count": 1
+    },
+    {
+      "folder": "lib/app",
+      "index": "lib/app/index.json",
+      "flatIndex": "lib/app.index.json",
+      "count": 1
+    },
+    {
+      "folder": "lib/data",
+      "index": "lib/data/index.json",
+      "flatIndex": "lib/data.index.json",
+      "count": 13
+    },
+    {
+      "folder": "lib/features",
+      "index": "lib/features/index.json",
+      "flatIndex": "lib/features.index.json",
+      "count": 63
+    },
+    {
+      "folder": "lib/questioning",
+      "index": "lib/questioning/index.json",
+      "flatIndex": "lib/questioning.index.json",
+      "count": 13
+    },
+    {
+      "folder": "lib/shared",
+      "index": "lib/shared/index.json",
+      "flatIndex": "lib/shared.index.json",
+      "count": 10
+    }
+  ]
+}

@@ -1,0 +1,606 @@
+[
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A001",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "労働力調査による労働力人口の令和元年（2019年）平均に最も近いのはどれか。",
+    "choices": {
+      "1": "4,800万人",
+      "2": "5,800万人",
+      "3": "6,800万人",
+      "4": "7,800万人"
+    },
+    "answer": "3",
+    "explanation": "令和元年（2019年）の労働力人口は約6,800万人規模であるため、最も近いのは3である。",
+    "choiceRationales": {
+      "1": "労働力人口としては少なすぎる。",
+      "2": "労働力人口としてはやや少ない。",
+      "3": "2019年平均の労働力人口の規模に最も近い。",
+      "4": "労働力人口としては多すぎる。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A002",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "日本の令和元年（2019年）の死亡数に近いのはどれか。",
+    "choices": {
+      "1": "98万人",
+      "2": "118万人",
+      "3": "138万人",
+      "4": "158万人"
+    },
+    "answer": "3",
+    "explanation": "2019年の死亡数は約138万人であるため、3が最も近い。",
+    "choiceRationales": {
+      "1": "2019年の死亡数としては少ない。",
+      "2": "2019年の死亡数としては少ない。",
+      "3": "2019年の死亡数の規模に最も近い。",
+      "4": "2019年の死亡数としては多い。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A003",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "シックハウス症候群（sick house syndrome）に関係する物質はどれか。",
+    "choices": {
+      "1": "アスベスト",
+      "2": "ダイオキシン類",
+      "3": "放射性セシウム",
+      "4": "ホルムアルデヒド"
+    },
+    "answer": "4",
+    "explanation": "シックハウス症候群は建材・接着剤などから放散される揮発性物質（例：ホルムアルデヒド）との関連が代表的である。",
+    "choiceRationales": {
+      "1": "アスベストは粉じん曝露により石綿肺や中皮腫などと関連する。",
+      "2": "ダイオキシン類は主に環境汚染物質として問題となる。",
+      "3": "放射性セシウムは放射線被ばくの問題であり、シックハウスの典型原因ではない。",
+      "4": "建材等由来の代表的原因物質であり関連が深い。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A004",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "後期高齢者医療制度の被保険者は、区域内に住居を有する〔 〕歳以上の者、および65歳以上〔 〕歳未満であって、政令で定める程度の障害の状態にあるとして後期高齢者医療広域連合の認定を受けた者である。〔 〕に入るのはどれか。",
+    "choices": {
+      "1": "70",
+      "2": "75",
+      "3": "80",
+      "4": "85"
+    },
+    "answer": "2",
+    "explanation": "後期高齢者医療制度は原則75歳以上（または65〜74歳で一定の障害認定）である。",
+    "choiceRationales": {
+      "1": "原則年齢要件ではない。",
+      "2": "原則75歳以上が被保険者である。",
+      "3": "年齢要件として誤り。",
+      "4": "年齢要件として誤り。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A005",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "患者の選択権の行使を最も促進するのはどれか。",
+    "choices": {
+      "1": "父権主義",
+      "2": "医師の裁量権",
+      "3": "コンプライアンス",
+      "4": "インフォームド・コンセント"
+    },
+    "answer": "4",
+    "explanation": "患者の自己決定（選択権）を支えるのは、十分な説明と同意に基づくインフォームド・コンセントである。",
+    "choiceRationales": {
+      "1": "医療者主導となりやすく、患者の選択権を促進しにくい。",
+      "2": "医師側の判断権であり、患者の選択権の促進とは異なる。",
+      "3": "治療方針への遵守（従うこと）であり、選択権の行使を直接促す概念ではない。",
+      "4": "説明を受けたうえで同意・選択できるため、選択権の行使を最も促進する。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A006",
+    "questionKind": "multiple",
+    "imageRequired": false,
+    "question": "マズロー（Maslow, A. H.）の基本的欲求の階層で社会的欲求はどれか。",
+    "choices": {
+      "1": "安全の欲求",
+      "2": "帰属の欲求",
+      "3": "承認の欲求",
+      "4": "睡眠の欲求"
+    },
+    "answer": ["2", "3"],
+    "explanation": "正答表では本問は2・3が正答扱いとなっている（採点上、両方を正解として扱う）。",
+    "choiceRationales": {
+      "1": "安全の欲求はより下位（生理的欲求の次）に位置づく。",
+      "2": "帰属（所属と愛）の欲求は社会的欲求として扱われる。",
+      "3": "承認（尊重）の欲求は社会的側面を含み得るとして、本試験では正答扱いとなっている。",
+      "4": "睡眠は生理的欲求である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A007",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "胎児循環で胎児から胎盤に血液を送るのはどれか。",
+    "choices": {
+      "1": "総頸動脈",
+      "2": "肺動脈",
+      "3": "臍動脈",
+      "4": "臍静脈"
+    },
+    "answer": "3",
+    "explanation": "胎児から胎盤へ向かうのは臍動脈、胎盤から胎児へ戻るのは臍静脈である。",
+    "choiceRationales": {
+      "1": "胎盤との連絡血管ではない。",
+      "2": "胎盤への血流経路ではない。",
+      "3": "胎児→胎盤へ血液を送る。",
+      "4": "胎盤→胎児へ血液を戻す。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A008",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "学童期の脈拍数の基準値はどれか。",
+    "choices": {
+      "1": "50〜70/分",
+      "2": "80〜100/分",
+      "3": "110〜130/分",
+      "4": "140〜160/分"
+    },
+    "answer": "2",
+    "explanation": "学童期の安静時脈拍はおおむね80〜100/分程度が目安となる。",
+    "choiceRationales": {
+      "1": "学童期としては徐脈寄りで一般的な基準範囲から外れやすい。",
+      "2": "学童期の基準値として妥当。",
+      "3": "乳幼児期に近い高い脈拍数であり学童期としては高すぎる。",
+      "4": "さらに高すぎ、通常は乳児などでみられる範囲に近い。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A009",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "日本の女性における平均閉経年齢に最も近いのはどれか。",
+    "choices": {
+      "1": "30歳",
+      "2": "40歳",
+      "3": "50歳",
+      "4": "60歳"
+    },
+    "answer": "3",
+    "explanation": "平均閉経年齢はおおむね50歳前後である。",
+    "choiceRationales": {
+      "1": "平均閉経年齢としては若すぎる。",
+      "2": "平均閉経年齢としては若い。",
+      "3": "平均閉経年齢に最も近い。",
+      "4": "平均閉経年齢としては高すぎる。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A010",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "令和元年（2019年）の国民生活基礎調査で次の世帯構造のうち最も少ないのはどれか。",
+    "choices": {
+      "1": "単独世帯",
+      "2": "三世代世帯",
+      "3": "夫婦のみの世帯",
+      "4": "夫婦と未婚の子のみの世帯"
+    },
+    "answer": "2",
+    "explanation": "近年の世帯構造では三世代世帯の割合が相対的に小さく、2019年でも最も少ない選択肢として扱われる。",
+    "choiceRationales": {
+      "1": "単独世帯は増加傾向で、最少ではない。",
+      "2": "三世代世帯は割合が小さく、最も少ない。",
+      "3": "夫婦のみ世帯は一定数あり、最少ではない。",
+      "4": "夫婦と未婚の子のみ世帯も一定数あり、最少ではない。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A011",
+    "questionKind": "single",
+    "imageRequired": true,
+    "imagePath": "assets/fig/111/am_q11_femur.png",
+    "question": "右大腿骨前面を図に示す。大腿骨頸部はどれか。",
+    "choices": {
+      "1": "①",
+      "2": "②",
+      "3": "③",
+      "4": "④"
+    },
+    "answer": "3",
+    "explanation": "大腿骨頸部は骨頭と骨幹部の間に位置する細くくびれた部分である。",
+    "choiceRationales": {
+      "1": "骨幹部や骨端部であり、大腿骨頸部ではない。",
+      "2": "骨頭または転子部に該当し、頸部ではない。",
+      "3": "骨頭と骨幹部の間のくびれた部分であり、大腿骨頸部に該当する。",
+      "4": "転子部や骨幹部であり、大腿骨頸部ではない。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A012",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "有害物質を無毒化し排泄する臓器はどれか。",
+    "choices": {
+      "1": "胃",
+      "2": "肝臓",
+      "3": "膵臓",
+      "4": "大腸"
+    },
+    "answer": "2",
+    "explanation": "肝臓は解毒作用を担い、有害物質を代謝・無毒化して胆汁や尿として排泄に関与する。",
+    "choiceRationales": {
+      "1": "胃は消化を主な機能とし、解毒作用は担わない。",
+      "2": "肝臓は解毒・代謝・排泄に重要な役割をもつ。",
+      "3": "膵臓は消化酵素やホルモン分泌が主な機能である。",
+      "4": "大腸は水分吸収と便形成が主な役割である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A013",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "黄疸のある成人患者にみられる随伴症状はどれか。",
+    "choices": {
+      "1": "動悸",
+      "2": "難聴",
+      "3": "関節痛",
+      "4": "掻痒感"
+    },
+    "answer": "4",
+    "explanation": "黄疸では胆汁うっ滞により皮膚の掻痒感が出現しやすい。",
+    "choiceRationales": {
+      "1": "動悸は黄疸の典型的随伴症状ではない。",
+      "2": "難聴は黄疸と直接の関連はない。",
+      "3": "関節痛は黄疸の代表的症状ではない。",
+      "4": "胆汁成分の沈着により皮膚の掻痒感が生じる。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A014",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "左前胸部から頸部や左上肢への放散痛が生じる疾患はどれか。",
+    "choices": {
+      "1": "胃潰瘍",
+      "2": "狭心症",
+      "3": "胆石症",
+      "4": "尿管結石症"
+    },
+    "answer": "2",
+    "explanation": "狭心症では心筋虚血により左前胸部から左上肢や頸部への放散痛がみられる。",
+    "choiceRationales": {
+      "1": "胃潰瘍は心臓由来の放散痛を起こさない。",
+      "2": "狭心症では典型的に左前胸部から左上肢・頸部への放散痛が生じる。",
+      "3": "胆石症は右上腹部痛が特徴である。",
+      "4": "尿管結石症は側腹部から鼠径部への放散痛が特徴である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A015",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "成人女性の赤血球数の基準値はどれか。",
+    "choices": {
+      "1": "150〜250 万/μL",
+      "2": "350〜450 万/μL",
+      "3": "550〜650 万/μL",
+      "4": "750〜850 万/μL"
+    },
+    "answer": "2",
+    "explanation": "成人女性の赤血球数はおよそ350〜450万/μLが基準範囲である。",
+    "choiceRationales": {
+      "1": "著しく低値であり、貧血の範囲となる。",
+      "2": "成人女性の基準範囲に該当する。",
+      "3": "基準より高値である。",
+      "4": "著しく高値であり、基準範囲を超えている。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A016",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "Open-ended question（開かれた質問）はどれか。",
+    "choices": {
+      "1": "「頭は痛みませんか」",
+      "2": "「昨夜は眠れましたか」",
+      "3": "「気分は悪くありませんか」",
+      "4": "「自宅ではどのように過ごしていましたか」"
+    },
+    "answer": "4",
+    "explanation": "開かれた質問は、自由に答えられる形式で、対象者の考えや状況を幅広く引き出すことができる。",
+    "choiceRationales": {
+      "1": "「はい／いいえ」で答えられる閉じた質問である。",
+      "2": "回答が限定される閉じた質問である。",
+      "3": "否定形で答えを誘導しやすい閉じた質問である。",
+      "4": "自由記述で状況を語れる開かれた質問である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A017",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "深部体温に最も近いのはどれか。",
+    "choices": {
+      "1": "腋窩温",
+      "2": "口腔温",
+      "3": "鼓膜温",
+      "4": "直腸温"
+    },
+    "answer": "4",
+    "explanation": "直腸温は体内深部の温度を最も正確に反映する測定部位である。",
+    "choiceRationales": {
+      "1": "腋窩温は外気の影響を受けやすい。",
+      "2": "口腔温は深部体温に近いが、影響因子が多い。",
+      "3": "鼓膜温は深部体温を推定できるが、測定誤差が生じやすい。",
+      "4": "直腸温は深部体温に最も近い。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A018",
+    "questionKind": "single",
+    "imageRequired": true,
+    "imagePath": "assets/fig/111/am_q18_cheyne_stokes.png",
+    "question": "呼吸パターンを図に示す。Cheyne-Stokes（チェーン-ストークス）呼吸はどれか。",
+    "choices": {
+      "1": "①",
+      "2": "②",
+      "3": "③",
+      "4": "④"
+    },
+    "answer": "1",
+    "explanation": "Cheyne-Stokes呼吸は、呼吸が徐々に深くなり、その後浅くなって無呼吸を繰り返す周期性呼吸である。",
+    "choiceRationales": {
+      "1": "呼吸の増減と無呼吸を周期的に繰り返しており、Cheyne-Stokes呼吸に該当する。",
+      "2": "Cheyne-Stokes呼吸の特徴的な周期性を示さない。",
+      "3": "呼吸リズムが異なり、該当しない。",
+      "4": "Cheyne-Stokes呼吸のパターンではない。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A019",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "高齢者の義歯の取り扱い方法で正しいのはどれか。",
+    "choices": {
+      "1": "就寝時に外す。",
+      "2": "熱湯で洗浄する。",
+      "3": "保管時は乾燥させる。",
+      "4": "総義歯は奥歯を起点に外す。"
+    },
+    "answer": "1",
+    "explanation": "義歯は就寝時に外し、口腔粘膜を休ませることが望ましい。",
+    "choiceRationales": {
+      "1": "粘膜の安静と清潔保持のため正しい。",
+      "2": "熱湯は義歯を変形させる恐れがある。",
+      "3": "乾燥は変形や劣化の原因となる。",
+      "4": "義歯は通常、前方や指示された方法で外す。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A020",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "使用後の注射針を廃棄する容器のバイオハザードマークの色はどれか。",
+    "choices": {
+      "1": "赤",
+      "2": "黄",
+      "3": "黒",
+      "4": "橙"
+    },
+    "answer": "2",
+    "explanation": "感染性廃棄物を示すバイオハザードマークは黄色で表示される。",
+    "choiceRationales": {
+      "1": "感染性廃棄物の標準色ではない。",
+      "2": "感染性廃棄物を示す色である。",
+      "3": "医療廃棄物の区分色ではない。",
+      "4": "バイオハザードマークの標準色ではない。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A021",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "成人の静脈血採血で適切なのはどれか。",
+    "choices": {
+      "1": "採血部位から2〜3cm中枢側に駆血帯を巻く。",
+      "2": "血管の走行に合わせ60度の角度で刺入する。",
+      "3": "採血後は刺入部位を圧迫しながら抜針する。",
+      "4": "刺入部位は数分以上圧迫し、止血する。"
+    },
+    "answer": "4",
+    "explanation": "静脈血採血後は、穿刺部位を数分以上圧迫して確実に止血する必要がある。",
+    "choiceRationales": {
+      "1": "駆血帯は通常5〜10cm中枢側に巻くため不適切である。",
+      "2": "静脈穿刺の角度は15〜30度が基本であり、60度は深すぎる。",
+      "3": "抜針後に圧迫するのが正しい手順である。",
+      "4": "止血確認のため数分以上圧迫する方法は適切である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A022",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "1回の気管内吸引を30秒以上実施した場合に生じるのはどれか。",
+    "choices": {
+      "1": "嘔吐",
+      "2": "感染",
+      "3": "低酸素血症",
+      "4": "気道粘膜の損傷"
+    },
+    "answer": "3",
+    "explanation": "長時間の吸引により換気が妨げられ、低酸素血症を起こす危険がある。",
+    "choiceRationales": {
+      "1": "直接的な影響ではない。",
+      "2": "清潔操作の不十分さが主な要因である。",
+      "3": "酸素供給が遮断され低酸素血症を生じやすい。",
+      "4": "吸引圧や頻回吸引が主因である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A023",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "上腕出血時の間接圧迫止血の部位はどれか。",
+    "choices": {
+      "1": "腋窩動脈",
+      "2": "尺骨動脈",
+      "3": "上腕動脈",
+      "4": "橈骨動脈"
+    },
+    "answer": "1",
+    "explanation": "上腕からの出血では、より中枢側である腋窩動脈を圧迫する。",
+    "choiceRationales": {
+      "1": "上腕への血流を遮断でき、間接圧迫止血として適切である。",
+      "2": "前腕の血流を支配する動脈である。",
+      "3": "直接圧迫部位に近い。",
+      "4": "手関節部の動脈である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A024",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "成人に対する一次救命処置（BLS）において、胸骨圧迫と人工呼吸の回数比は〔　〕：である。",
+    "choices": {
+      "1": "5",
+      "2": "10",
+      "3": "30",
+      "4": "50"
+    },
+    "answer": "3",
+    "explanation": "成人BLSでは胸骨圧迫30回に対し人工呼吸2回を行う。",
+    "choiceRationales": {
+      "1": "現在のBLS基準ではない。",
+      "2": "標準的な回数比ではない。",
+      "3": "正しい回数比である。",
+      "4": "BLSの基準ではない。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "am",
+    "questionNumber": "A025",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "感染症の予防及び感染症の患者に対する医療に関する法律（感染症法）において、結核が分類されるのはどれか。",
+    "choices": {
+      "1": "一類",
+      "2": "二類",
+      "3": "三類",
+      "4": "四類",
+      "5": "五類"
+    },
+    "answer": "2",
+    "explanation": "結核は二類感染症に分類される。",
+    "choiceRationales": {
+      "1": "一類感染症ではない。",
+      "2": "結核は二類感染症である。",
+      "3": "該当しない。",
+      "4": "該当しない。",
+      "5": "該当しない。"
+    }
+  }
+]

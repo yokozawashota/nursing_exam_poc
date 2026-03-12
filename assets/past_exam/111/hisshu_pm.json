@@ -1,0 +1,602 @@
+[
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B001",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "平成29年（2017年）推計による日本の将来推計人口で、令和47年（2065年）の推計人口に最も近いのはどれか。",
+    "choices": {
+      "1": "6,800万人",
+      "2": "8,800万人",
+      "3": "1億800万人",
+      "4": "1億2,800万人"
+    },
+    "answer": "2",
+    "explanation": "2065年の推計人口は約8,800万人とされるため、2が最も近い。",
+    "choiceRationales": {
+      "1": "推計値より少なすぎる。",
+      "2": "推計値に最も近い。",
+      "3": "推計値より多い。",
+      "4": "推計値より大幅に多い。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B002",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "生活習慣病の三次予防はどれか。",
+    "choices": {
+      "1": "健康診断",
+      "2": "早期治療",
+      "3": "体力づくり",
+      "4": "社会復帰のためのリハビリテーション"
+    },
+    "answer": "4",
+    "explanation": "三次予防は、後遺症や障害の軽減と社会復帰の支援を目的とする。",
+    "choiceRationales": {
+      "1": "早期発見に関わり、主に二次予防に位置づく。",
+      "2": "早期治療は二次予防である。",
+      "3": "発症予防を目的とする一次予防である。",
+      "4": "機能回復・社会復帰を目的とする三次予防である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B003",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "職業性疾病のうち、情報機器（VDT）作業による健康障害はどれか。",
+    "choices": {
+      "1": "じん肺",
+      "2": "視力障害",
+      "3": "振動障害",
+      "4": "皮膚障害"
+    },
+    "answer": "2",
+    "explanation": "VDT作業では眼精疲労や視機能低下などの健康障害が生じやすい。",
+    "choiceRationales": {
+      "1": "粉じんの吸入が原因でありVDT作業とは異なる。",
+      "2": "VDT作業で生じやすい代表的な健康障害である。",
+      "3": "振動工具の使用などが原因である。",
+      "4": "主たるVDT健康障害としては一般的ではない。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B004",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "介護保険における被保険者の要支援状態に対する保険給付はどれか。",
+    "choices": {
+      "1": "医療給付",
+      "2": "介護給付",
+      "3": "年金給付",
+      "4": "予防給付"
+    },
+    "answer": "4",
+    "explanation": "要支援者は、介護予防を目的とする予防給付（介護予防サービス等）の対象となる。",
+    "choiceRationales": {
+      "1": "医療保険の給付であり介護保険給付ではない。",
+      "2": "介護給付は主に要介護者が対象である。",
+      "3": "年金制度の給付である。",
+      "4": "要支援者に対する給付である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B005",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "看護師免許を付与するのはどれか。",
+    "choices": {
+      "1": "保健所長",
+      "2": "厚生労働大臣",
+      "3": "都道府県知事",
+      "4": "文部科学大臣"
+    },
+    "answer": "2",
+    "explanation": "看護師免許は保健師助産師看護師法に基づき厚生労働大臣が付与する。",
+    "choiceRationales": {
+      "1": "免許付与権者ではない。",
+      "2": "看護師免許の付与権者である。",
+      "3": "免許付与権者ではない。",
+      "4": "免許付与権者ではない。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B006",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "フィンク（Fink, S.L.）の危機モデルで第2段階はどれか。",
+    "choices": {
+      "1": "衝撃",
+      "2": "承認",
+      "3": "適応",
+      "4": "防御的退行"
+    },
+    "answer": "4",
+    "explanation": "フィンクの危機モデルは「衝撃→防御的退行→承認→適応」の順に進む。",
+    "choiceRationales": {
+      "1": "第1段階である。",
+      "2": "第3段階である。",
+      "3": "第4段階である。",
+      "4": "第2段階である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B007",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "ハヴィガースト（Havighurst, R.J.）の発達課題で善悪の区別を学習するのはどれか。",
+    "choices": {
+      "1": "乳幼児期",
+      "2": "児童期",
+      "3": "青年期",
+      "4": "中年期"
+    },
+    "answer": "1",
+    "explanation": "善悪の区別など、基本的な規範の獲得は発達早期（乳幼児期）に形成される。",
+    "choiceRationales": {
+      "1": "基本的規範の学習が進む時期である。",
+      "2": "学業・仲間関係などの課題が中心である。",
+      "3": "自立・職業選択などの課題が中心である。",
+      "4": "社会的責任や役割再編が中心である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B008",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "次の時期のうち基礎代謝量が最も多いのはどれか。",
+    "choices": {
+      "1": "青年期",
+      "2": "壮年期",
+      "3": "向老期",
+      "4": "老年期"
+    },
+    "answer": "1",
+    "explanation": "基礎代謝量は加齢とともに低下しやすく、青年期が最も高い。",
+    "choiceRationales": {
+      "1": "筋量・活動性が比較的高く基礎代謝量が大きい。",
+      "2": "青年期より低下しやすい。",
+      "3": "加齢によりさらに低下する。",
+      "4": "最も低下しやすい。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B009",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "世界保健機関（WHO）が2000年に提唱した「健康上の問題で日常生活が制限されることなく生活できる期間」はどれか。",
+    "choices": {
+      "1": "健康寿命",
+      "2": "健康余命",
+      "3": "平均寿命",
+      "4": "平均余命"
+    },
+    "answer": "1",
+    "explanation": "日常生活に制限のない期間を示す概念は健康寿命である。",
+    "choiceRationales": {
+      "1": "定義に合致する。",
+      "2": "一般的な公式用語としては用いられにくい。",
+      "3": "出生から死亡までの平均年数であり概念が異なる。",
+      "4": "ある年齢から先の平均生存年数であり概念が異なる。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B010",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "指定訪問看護ステーションには常勤換算で（　）人以上の看護職員を配置することが定められている。（　）に入るのはどれか。",
+    "choices": {
+      "1": "1.0",
+      "2": "1.5",
+      "3": "2.0",
+      "4": "2.5"
+    },
+    "answer": "4",
+    "explanation": "指定訪問看護ステーションでは常勤換算で2.5人以上の看護職員配置が求められる。",
+    "choiceRationales": {
+      "1": "基準に満たない。",
+      "2": "基準に満たない。",
+      "3": "基準に満たない。",
+      "4": "基準を満たす。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B011",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "左心室から全身に血液を送り出す血管はどれか。",
+    "choices": {
+      "1": "大静脈",
+      "2": "大動脈",
+      "3": "肺静脈",
+      "4": "肺動脈"
+    },
+    "answer": "2",
+    "explanation": "左心室から出て全身循環へ血液を送る血管は大動脈である。",
+    "choiceRationales": {
+      "1": "全身から右心房へ戻る血管である。",
+      "2": "左心室から全身へ血液を送る。",
+      "3": "肺から左心房へ戻る血管である。",
+      "4": "右心室から肺へ血液を送る。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B012",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "内分泌器官はどれか。",
+    "choices": {
+      "1": "乳腺",
+      "2": "涙腺",
+      "3": "甲状腺",
+      "4": "唾液腺"
+    },
+    "answer": "3",
+    "explanation": "甲状腺はホルモンを血中へ分泌する内分泌器官である。",
+    "choiceRationales": {
+      "1": "外分泌（乳汁分泌）である。",
+      "2": "外分泌（涙分泌）である。",
+      "3": "内分泌器官である。",
+      "4": "外分泌（唾液分泌）である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B013",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "呼吸中枢があるのはどれか。",
+    "choices": {
+      "1": "間脳",
+      "2": "小脳",
+      "3": "大脳",
+      "4": "脳幹"
+    },
+    "answer": "4",
+    "explanation": "呼吸中枢は延髄など脳幹に存在する。",
+    "choiceRationales": {
+      "1": "自律機能の調整に関与するが呼吸中枢ではない。",
+      "2": "運動の協調に関与する。",
+      "3": "高次脳機能に関与する。",
+      "4": "呼吸中枢が存在する。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B014",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "細菌感染で起こるショックはどれか。",
+    "choices": {
+      "1": "心原性ショック",
+      "2": "敗血症性ショック",
+      "3": "アナフィラキシーショック",
+      "4": "循環血液量減少性ショック"
+    },
+    "answer": "2",
+    "explanation": "細菌感染に伴う敗血症により循環が破綻するのが敗血症性ショックである。",
+    "choiceRationales": {
+      "1": "心機能低下が原因である。",
+      "2": "感染（敗血症）により起こる。",
+      "3": "アレルギー反応が原因である。",
+      "4": "出血・脱水などで循環血液量が減少して起こる。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B015",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "低体温から回復するための生体の反応はどれか。",
+    "choices": {
+      "1": "発汗",
+      "2": "ふるえ",
+      "3": "乳酸の蓄積",
+      "4": "体表面への血流増加"
+    },
+    "answer": "2",
+    "explanation": "低体温では熱産生を増やすためにふるえ（シバリング）が起こる。",
+    "choiceRationales": {
+      "1": "発汗は体温を下げる反応である。",
+      "2": "筋活動で熱産生を増やす反応である。",
+      "3": "回復反応としての代表ではない。",
+      "4": "低体温時は末梢血管収縮が起こりやすい。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B016",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "貧血の定義で正しいのはどれか。",
+    "choices": {
+      "1": "血圧が低下すること",
+      "2": "脈拍が速くなること",
+      "3": "立ち上がると失神を起こすこと",
+      "4": "ヘモグロビン濃度が減少していること"
+    },
+    "answer": "4",
+    "explanation": "貧血は酸素運搬能の低下であり、臨床的にはヘモグロビン濃度低下で定義される。",
+    "choiceRationales": {
+      "1": "症状として起こり得るが定義ではない。",
+      "2": "代償反応として起こり得るが定義ではない。",
+      "3": "他の要因でも起こり得るため定義ではない。",
+      "4": "定義に合致する。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B017",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "全身性けいれん発作を起こしている患者に最も優先して行うのはどれか。",
+    "choices": {
+      "1": "気道確保",
+      "2": "周囲の環境整備",
+      "3": "末梢静脈路の確保",
+      "4": "心電図モニターの装着"
+    },
+    "answer": "1",
+    "explanation": "けいれん時は舌根沈下や分泌物で気道閉塞を起こし得るため、まず気道確保を優先する。",
+    "choiceRationales": {
+      "1": "生命維持（ABC）の観点から最優先である。",
+      "2": "重要だが気道確保の後に行う。",
+      "3": "治療に必要だが最優先ではない。",
+      "4": "観察に有用だが最優先ではない。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B018",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "左心不全でみられる症状はどれか。",
+    "choices": {
+      "1": "肝腫大",
+      "2": "下肢浮腫",
+      "3": "起坐呼吸",
+      "4": "頸静脈怒張"
+    },
+    "answer": "3",
+    "explanation": "左心不全では肺うっ血により呼吸困難が生じ、起坐呼吸がみられる。",
+    "choiceRationales": {
+      "1": "主に右心不全でみられやすい。",
+      "2": "主に右心不全でみられやすい。",
+      "3": "肺うっ血による呼吸困難の典型である。",
+      "4": "主に右心不全でみられやすい。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B019",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "大腸の狭窄による便秘はどれか。",
+    "choices": {
+      "1": "器質性便秘",
+      "2": "痙攣型便秘",
+      "3": "弛緩型便秘",
+      "4": "直腸性便秘"
+    },
+    "answer": "1",
+    "explanation": "腫瘍などによる腸管狭窄は器質的病変による便秘（器質性便秘）である。",
+    "choiceRationales": {
+      "1": "器質的原因（狭窄）による便秘である。",
+      "2": "機能的要因（過敏性腸症候群など）が中心である。",
+      "3": "腸蠕動低下など機能的要因が中心である。",
+      "4": "直腸の排便機能や排便行動の影響が中心である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B020",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "左片麻痺患者の上衣の交換で適切なのはどれか。",
+    "choices": {
+      "1": "左腕から脱がせ、左腕から着せる。",
+      "2": "左腕から脱がせ、右腕から着せる。",
+      "3": "右腕から脱がせ、左腕から着せる。",
+      "4": "右腕から脱がせ、右腕から着せる。"
+    },
+    "answer": "3",
+    "explanation": "更衣は、脱衣は健側から、着衣は患側から行うのが原則である。",
+    "choiceRationales": {
+      "1": "脱衣は健側からが原則であり不適切。",
+      "2": "着衣は患側からが原則であり不適切。",
+      "3": "脱衣（健側）→着衣（患側）の原則に沿う。",
+      "4": "着衣の順序が不適切である。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B021",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "転倒・転落を起こすリスクを高める薬はどれか。",
+    "choices": {
+      "1": "降圧薬",
+      "2": "抗凝固薬",
+      "3": "気管支拡張薬",
+      "4": "副腎皮質ステロイド薬"
+    },
+    "answer": "1",
+    "explanation": "降圧薬は起立性低血圧やふらつきを起こしやすく、転倒・転落リスクを高める。",
+    "choiceRationales": {
+      "1": "血圧低下や起立性低血圧により転倒リスクが上がる。",
+      "2": "転倒そのものより、転倒後の出血リスクが問題となりやすい。",
+      "3": "一般に転倒リスク増大の代表薬とはされにくい。",
+      "4": "長期では骨粗鬆症などは問題だが、直接の転倒誘発薬の代表ではない。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B022",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "注射針の刺入角度が45〜90度の注射法はどれか。",
+    "choices": {
+      "1": "皮下注射",
+      "2": "皮内注射",
+      "3": "筋肉内注射",
+      "4": "静脈内注射"
+    },
+    "answer": "3",
+    "explanation": "筋肉内注射は一般に45〜90度で刺入する。",
+    "choiceRationales": {
+      "1": "皮下注射は一般に45度前後（皮下脂肪の厚さで調整）である。",
+      "2": "皮内注射は浅く10〜15度程度である。",
+      "3": "筋層へ到達させるため45〜90度で刺入する。",
+      "4": "静脈内注射は一般に浅めの角度で静脈内へ刺入する。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B023",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "点滴静脈内注射で輸液ポンプを使用する際に設定する項目はどれか。",
+    "choices": {
+      "1": "薬剤名",
+      "2": "終了時間",
+      "3": "投与月日",
+      "4": "1時間あたりの流量"
+    },
+    "answer": "4",
+    "explanation": "輸液ポンプは投与速度（mL/時など）を設定して投与量を管理する。",
+    "choiceRationales": {
+      "1": "薬剤名は機器設定項目ではなく管理情報である。",
+      "2": "終了時間を直接設定する機器もあるが、基本は流量設定で管理する。",
+      "3": "投与月日は機器設定項目ではない。",
+      "4": "投与速度（流量）を設定して投与管理を行う。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B024",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "褥瘡の深達度分類で水疱形成のステージはどれか。",
+    "choices": {
+      "1": "Ⅰ",
+      "2": "Ⅱ",
+      "3": "Ⅲ",
+      "4": "Ⅳ"
+    },
+    "answer": "2",
+    "explanation": "ステージⅡは真皮までの損傷で、びらんや水疱形成がみられる。",
+    "choiceRationales": {
+      "1": "皮膚の発赤などで、通常は水疱形成は含まれない。",
+      "2": "真皮までの損傷で、水疱や浅い潰瘍がみられる。",
+      "3": "皮下組織まで達する。",
+      "4": "筋・骨など深部組織に達する。"
+    }
+  },
+  {
+    "sourceType": "past_exam",
+    "exam": "看護師国家試験",
+    "session": 111,
+    "time": "pm",
+    "questionNumber": "B025",
+    "questionKind": "single",
+    "imageRequired": false,
+    "question": "最も高い照度を必要とするのはどれか。",
+    "choices": {
+      "1": "病室",
+      "2": "手術野",
+      "3": "トイレ",
+      "4": "病棟の廊下"
+    },
+    "answer": "2",
+    "explanation": "手術野は精密な視認が必要であり最も高い照度が求められる。",
+    "choiceRationales": {
+      "1": "療養環境としての照度であり手術野ほど高照度は不要である。",
+      "2": "精密操作が必要なため高照度が必要である。",
+      "3": "安全確保に必要だが手術野ほどではない。",
+      "4": "歩行安全に必要だが手術野ほどではない。"
+    }
+  }
+]

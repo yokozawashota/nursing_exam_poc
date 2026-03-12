@@ -1,0 +1,14 @@
+{
+  "folder": "lib/_root",
+  "generatedAt": "2026-03-12T14:05:53.890121ZZ",
+  "count": 1,
+  "items": [
+    {
+      "path": "lib/main.dart",
+      "file": "main.dart",
+      "size": 1283,
+      "modified": "2026-03-12T14:04:42.388Z",
+      "content": "// lib/main.dart\nimport 'dart:async';\n\nimport 'package:flutter/material.dart';\nimport 'package:flutter/services.dart';\nimport 'package:flutter_native_splash/flutter_native_splash.dart';\n\nimport 'package:nursing_exam_poc/app/bottom_nav_shell.dart';\nimport 'package:nursing_exam_poc/features/past_exam/screens/past_exam_home_screen.dart';\nimport 'package:nursing_exam_poc/shared/theme/app_theme.dart';\n\nFuture<void> main() async {\n  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();\n\n  // ネイティブスプラッシュを保持\n  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);\n\n  await SystemChrome.setPreferredOrientations([\n    DeviceOrientation.portraitUp,\n  ]);\n\n  // 少しだけ表示時間を伸ばす\n  await Future.delayed(const Duration(milliseconds: 1000));\n\n  // ネイティブスプラッシュ解除\n  FlutterNativeSplash.remove();\n\n  runApp(const NurAIApp());\n}\n\nclass NurAIApp extends StatelessWidget {\n  const NurAIApp({super.key});\n\n  @override\n  Widget build(BuildContext context) {\n    return MaterialApp(\n      title: 'NurAI',\n      debugShowCheckedModeBanner: false,\n      theme: buildAppTheme(),\n      routes: {\n        '/past-exam': (_) => const PastExamHomeScreen(),\n      },\n      home: const BottomNavShell(),\n    );\n  }\n}"
+    }
+  ]
+}

@@ -1,105 +1,160 @@
-/// 厚労省の出題基準イメージに沿った階層データ（大項目＞中項目＞小項目）
-/// - 画面では「大＞中」まで選択させます
-/// - 小項目は裏側でランダム（偏り抑制あり）に選びます
-///
-/// ※ 必要に応じて小項目は追記してください。アプリは自動で反映されます。
-const Map<String, Map<String, List<String>>> kCategoryTree = {
-  // --- 基礎・共通 ---
-  '人体の構造と機能': {
-    '神経系': ['中枢神経', '末梢神経', '自律神経'],
-    '循環器系': ['心解剖', '冠循環', '血圧調節'],
-    '呼吸器系': ['換気', 'ガス交換', '呼吸調節'],
-  },
-  '疾病の成り立ちと回復の促進': {
-    '病因・病態': ['炎症', '免疫', '腫瘍'],
-    '治療の基礎': ['薬物療法', '栄養管理', 'リハビリ'],
-  },
-  '健康支援と社会保障制度': {
-    '保健医療福祉': ['公衆衛生', '地域包括ケア', '保険制度'],
-  },
-  '基礎看護学': {
-    '看護過程': ['アセスメント', '計画・実施・評価', '記録'],
-    '感染予防': ['標準予防策', '手指衛生', '隔離予防策'],
-    '医療安全': ['転倒転落', '誤薬防止', 'インシデントレポート'],
-  },
+// lib/data/categories.dart
+// 出題範囲ドメインの集約とディスパッチ
 
-  // --- 各論 ---
-  '成人看護学': {
-    '循環器': ['心不全', '狭心症', '心筋梗塞', '不整脈'],
-    '呼吸器': ['肺炎', '喘息', 'COPD', '気胸'],
-    '消化器': ['胃潰瘍', '肝硬変', '胆石', '膵炎'],
-  },
-  '老年看護学': {
-    '加齢変化': ['筋骨格', '認知機能', '嚥下'],
-    '高齢者看護': ['褥瘡予防', 'フレイル', 'ポリファーマシー'],
-  },
-  '小児看護学': {
-    '発達段階': ['乳児', '幼児', '学童', '思春期'],
-    '小児疾患': ['先天性心疾患', '喘息', '川崎病'],
-  },
-  '母性看護学': {
-    '妊娠・分娩': ['妊娠高血圧症候群', '切迫早産', '分娩介助'],
-    '産褥': ['乳房トラブル', '産後うつ', '新生児ケア'],
-  },
-  '精神看護学': {
-    '精神障害の理解': [
-      '統合失調症',
-      '気分障害（うつ・双極性）',
-      '不安障害・強迫症',
-      'パニック障害',
-      'PTSD',
-      '認知症',
-      '摂食障害',
-      'アルコール依存症',
-      '薬物関連障害',
-      'パーソナリティ障害',
-    ],
-    '精神科看護の技術': [
-      '治療的環境',
-      '服薬管理・アドヒアランス',
-      '危機介入',
-      '面接技法（傾聴・共感）',
-      '退院支援・地域移行',
-    ],
-    '治療・リハビリテーション': [
-      '認知行動療法',
-      '作業療法',
-      '家族教育',
-      '再発予防',
-    ],
-  },
-  '在宅看護論': {
-    '在宅療養支援': ['訪問看護', '多職種連携', '看取り'],
-  },
-  '看護の統合と実践': {
-    '統合的看護': ['救急看護', '災害看護', '緩和ケア'],
-  },
+// 一般問題（領域別）
+import 'general/body_structure.dart';
+import 'general/disease_recovery.dart';
+import 'general/health_social_security.dart';
+import 'general/adult_nursing.dart';
+import 'general/geriatric_nursing.dart';
+import 'general/pediatric_nursing.dart';
+import 'general/maternal_nursing.dart';
+import 'general/psychiatric_nursing.dart';
+import 'general/home_community_nursing.dart';
+import 'general/nursing_integration_practice.dart'; // ← ファイル名を統一
 
-  // 補助（従来よく使うラベル）
-  '感染予防・感染看護': {
-    '感染対策': ['手指衛生', '個人防護具', '環境整備'],
-  },
-  '医療安全': {
-    '安全管理': ['誤薬防止', '安全文化', 'KYT'],
-  },
-  '看護倫理': {
-    '倫理課題': ['自己決定', '守秘義務', 'インフォームドコンセント'],
-  },
-  '看護管理': {
-    '管理': ['人材育成', 'マネジメント', '勤務表'],
-  },
-  '公衆衛生学': {
-    '疫学・統計': ['指標', '研究デザイン', 'サーベイランス'],
-  },
-};
+// 必修は別ファイル（hisshu_categories.dart）で管理している想定。
+// ※このファイルでは必修のデータ構造は扱いません。
 
-/// 大項目一覧（UIの最上段ドロップダウン用）
-List<String> get majorCategories => kCategoryTree.keys.toList();
+// ドメイン定数（表示名は原典どおり）
+const String kDomainBodyStructure        = '人体の構造と機能';
+const String kDomainDiseaseRecovery      = '疾病の成り立ちと回復の促進';
+const String kDomainHealthSocial         = '健康支援と社会保障制度';
+const String kDomainAdultNursing         = '成人看護学';
+const String kDomainGeriatricNursing     = '老年看護学';
+const String kDomainPediatricNursing     = '小児看護学';
+const String kDomainMaternalNursing      = '母性看護学';
+const String kDomainPsychiatricNursing   = '精神看護学';
+const String kDomainHomeCommunityNursing = '在宅看護論／地域・在宅看護論';
+const String kDomainIntegrationPractice  = '看護の統合と実践';
 
-/// 指定の大項目にぶら下がる中項目一覧
-List<String> midCategoriesOf(String major) =>
-    kCategoryTree[major]?.keys.toList() ?? const [];
+// 画面のドロップダウンに出す並び順（一般問題用）
+const List<String> domains = <String>[
+  kDomainBodyStructure,
+  kDomainDiseaseRecovery,
+  kDomainHealthSocial,
+  kDomainAdultNursing,
+  kDomainGeriatricNursing,
+  kDomainPediatricNursing,
+  kDomainMaternalNursing,
+  kDomainPsychiatricNursing,
+  kDomainHomeCommunityNursing,
+  kDomainIntegrationPractice,
+];
 
-/// 指定の（大,中）にぶら下がる小項目一覧（裏側でランダム選択用）
-List<String> topicsOf(String major, String mid) =>
-    kCategoryTree[major]?[mid] ?? const [];
+// 状況設定問題で選択可能な分野（要件: 老年/小児/母性/精神/在宅/統合）
+const List<String> situationalDomains = <String>[
+  kDomainGeriatricNursing,
+  kDomainPediatricNursing,
+  kDomainMaternalNursing,
+  kDomainPsychiatricNursing,
+  kDomainHomeCommunityNursing,
+  kDomainIntegrationPractice,
+];
+
+/// 大項目一覧を返す
+List<String> majorsOf(String domain) {
+  if (domain == kDomainBodyStructure)        return bodyStructureMajors();
+  if (domain == kDomainDiseaseRecovery)      return diseaseRecoveryMajors();
+  if (domain == kDomainHealthSocial)         return healthSocialMajors();
+  if (domain == kDomainAdultNursing)         return adultNursingMajors();
+  if (domain == kDomainGeriatricNursing)     return geriatricNursingMajors();
+  if (domain == kDomainPediatricNursing)     return pediatricNursingMajors();
+  if (domain == kDomainMaternalNursing)      return maternalNursingMajors();
+  if (domain == kDomainPsychiatricNursing)   return psychiatricNursingMajors();
+  if (domain == kDomainHomeCommunityNursing) return homeCommunityNursingMajors();
+  if (domain == kDomainIntegrationPractice)  return nursingIntegrationPracticeMajors(); // ← 関数名も統一
+  return const [];
+}
+
+/// 指定ドメイン・大項目の中項目一覧
+List<String> midsOf(String domain, String major) {
+  if (domain == kDomainBodyStructure)        return bodyStructureMids(major);
+  if (domain == kDomainDiseaseRecovery)      return diseaseRecoveryMids(major);
+  if (domain == kDomainHealthSocial)         return healthSocialMids(major);
+  if (domain == kDomainAdultNursing)         return adultNursingMids(major);
+  if (domain == kDomainGeriatricNursing)     return geriatricNursingMids(major);
+  if (domain == kDomainPediatricNursing)     return pediatricNursingMids(major);
+  if (domain == kDomainMaternalNursing)      return maternalNursingMids(major);
+  if (domain == kDomainPsychiatricNursing)   return psychiatricNursingMids(major);
+  if (domain == kDomainHomeCommunityNursing) return homeCommunityNursingMids(major);
+  if (domain == kDomainIntegrationPractice)  return nursingIntegrationPracticeMids(major); // ← 統一
+  return const [];
+}
+
+/// 指定（ドメイン, 大項目[, 中項目]）の小項目（キーワード）
+/// mid を省略/ null の場合は、その大項目配下の全キーワードを結合して返す
+List<String> topicsOf(String domain, String major, [String? mid]) {
+  List<String> _collectAll(
+      List<String> mids,
+      List<String> Function(String major, String mid) getter,
+      ) {
+    final list = <String>[];
+    for (final m in mids) {
+      list.addAll(getter(major, m));
+    }
+    return list;
+  }
+
+  if (domain == kDomainBodyStructure) {
+    return (mid == null)
+        ? _collectAll(bodyStructureMids(major), bodyStructureTopicsOf)
+        : bodyStructureTopicsOf(major, mid);
+  }
+
+  if (domain == kDomainDiseaseRecovery) {
+    return (mid == null)
+        ? _collectAll(diseaseRecoveryMids(major), diseaseRecoveryTopicsOf)
+        : diseaseRecoveryTopicsOf(major, mid);
+  }
+
+  if (domain == kDomainHealthSocial) {
+    return (mid == null)
+        ? _collectAll(healthSocialMids(major), healthSocialTopicsOf)
+        : healthSocialTopicsOf(major, mid);
+  }
+
+  if (domain == kDomainAdultNursing) {
+    return (mid == null)
+        ? _collectAll(adultNursingMids(major), adultNursingTopicsOf)
+        : adultNursingTopicsOf(major, mid);
+  }
+
+  if (domain == kDomainGeriatricNursing) {
+    return (mid == null)
+        ? _collectAll(geriatricNursingMids(major), geriatricNursingTopicsOf)
+        : geriatricNursingTopicsOf(major, mid);
+  }
+
+  if (domain == kDomainPediatricNursing) {
+    return (mid == null)
+        ? _collectAll(pediatricNursingMids(major), pediatricNursingTopicsOf)
+        : pediatricNursingTopicsOf(major, mid);
+  }
+
+  if (domain == kDomainMaternalNursing) {
+    return (mid == null)
+        ? _collectAll(maternalNursingMids(major), maternalNursingTopicsOf)
+        : maternalNursingTopicsOf(major, mid);
+  }
+
+  if (domain == kDomainPsychiatricNursing) {
+    return (mid == null)
+        ? _collectAll(psychiatricNursingMids(major), psychiatricNursingTopicsOf)
+        : psychiatricNursingTopicsOf(major, mid);
+  }
+
+  if (domain == kDomainHomeCommunityNursing) {
+    return (mid == null)
+        ? _collectAll(homeCommunityNursingMids(major), homeCommunityNursingTopicsOf)
+        : homeCommunityNursingTopicsOf(major, mid);
+  }
+
+  if (domain == kDomainIntegrationPractice) {
+    return (mid == null)
+        ? _collectAll(nursingIntegrationPracticeMids(major), nursingIntegrationPracticeTopicsOf)
+        : nursingIntegrationPracticeTopicsOf(major, mid);
+  }
+
+  return const [];
+}

@@ -1,0 +1,34 @@
+{
+  "exams": [
+    {
+      "id": "111",
+      "title": "第111回（2022年）",
+      "parts": [
+        {
+          "key": "hisshu_am",
+          "label": "必修問題 午前",
+          "description": "必修 午前の問題を解く",
+          "kind": "必修"
+        },
+        {
+          "key": "ippan_am",
+          "label": "一般問題 午前",
+          "description": "一般 午前の問題を解く",
+          "kind": "一般"
+        }
+      ]
+    },
+    {
+      "id": "113",
+      "title": "第113回（2024年）",
+      "parts": [
+        {
+          "key": "hisshu_am",
+          "label": "必修問題 午前",
+          "description": "必修 午前の問題を解く",
+          "kind": "必修"
+        }
+      ]
+    }
+  ]
+}
