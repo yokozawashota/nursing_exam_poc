@@ -1,5 +1,5 @@
 // lib/features/ai_analysis/domain/record_structure_enricher.dart
-import 'package:nursing_exam_poc/shared/models/answer_history.dart';
+import 'package:nursing_exam_poc/features/history/services/history_answer_service.dart';
 import 'package:nursing_exam_poc/features/ai_analysis/services/classification_service.dart';
 
 /// ----------------------------------------------

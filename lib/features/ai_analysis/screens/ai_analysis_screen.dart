@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // ✅ 追加：debugPrintStack 用
 
-import 'package:nursing_exam_poc/shared/models/answer_history.dart';
+import 'package:nursing_exam_poc/features/history/services/history_answer_service.dart';
 import 'package:nursing_exam_poc/shared/theme/app_theme.dart';
 import 'package:nursing_exam_poc/shared/widgets/base_scaffold.dart';
 

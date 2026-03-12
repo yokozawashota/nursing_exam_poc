@@ -1,5 +1,5 @@
 // lib/features/ai_analysis/utils/nurai_analysis.dart
-import 'package:nursing_exam_poc/shared/models/answer_history.dart';
+import 'package:nursing_exam_poc/features/history/services/history_answer_service.dart';
 
 /// 正答率（0.0〜1.0）
 double accuracyOf(List<AnswerRecord> items) {

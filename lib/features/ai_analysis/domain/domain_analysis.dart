@@ -1,5 +1,5 @@
 // lib/features/ai_analysis/utils/domain_analysis.dart
-import 'package:nursing_exam_poc/shared/models/answer_history.dart';
+import 'package:nursing_exam_poc/features/history/services/history_answer_service.dart';
 
 /// 分野集計 1件分
 class DomainAgg {

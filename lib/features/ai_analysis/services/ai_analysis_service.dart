@@ -3,7 +3,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import 'package:nursing_exam_poc/shared/models/answer_history.dart';
+import 'package:nursing_exam_poc/features/history/services/history_answer_service.dart';
 
 import 'package:nursing_exam_poc/features/ai_analysis/domain/domain_analysis.dart';
 import 'package:nursing_exam_poc/features/ai_analysis/models/ai_analysis_models.dart';

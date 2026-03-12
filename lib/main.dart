@@ -1,19 +1,29 @@
 // lib/main.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'package:nursing_exam_poc/app/bottom_nav_shell.dart';
 import 'package:nursing_exam_poc/features/past_exam/screens/past_exam_home_screen.dart';
 import 'package:nursing_exam_poc/shared/theme/app_theme.dart';
 
 Future<void> main() async {
-  // runApp の前に初期化
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
-  // 画面向きを「縦（上向き）」に固定（逆さNG）
+  // ネイティブスプラッシュを保持
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
+
+  // 少しだけ表示時間を伸ばす
+  await Future.delayed(const Duration(milliseconds: 1000));
+
+  // ネイティブスプラッシュ解除
+  FlutterNativeSplash.remove();
 
   runApp(const NurAIApp());
 }
@@ -26,16 +36,10 @@ class NurAIApp extends StatelessWidget {
     return MaterialApp(
       title: 'NurAI',
       debugShowCheckedModeBanner: false,
-
-      // 新しいテーマ構造（buildAppTheme を使用）
       theme: buildAppTheme(),
-
-      // ★ named route で過去問モードに飛べるようにしておく
       routes: {
         '/past-exam': (_) => const PastExamHomeScreen(),
       },
-
-      // ← 常時ボトムナビ付き構成そのまま
       home: const BottomNavShell(),
     );
   }

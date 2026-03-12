@@ -9,9 +9,9 @@ import 'package:nursing_exam_poc/features/notice/screens/notice_list_screen.dart
 import 'package:nursing_exam_poc/features/notice/services/notice_prefs.dart';
 import 'package:nursing_exam_poc/features/notice/services/notice_service.dart';
 import 'package:nursing_exam_poc/features/past_exam/screens/past_exam_year_list_screen.dart';
-import 'package:nursing_exam_poc/features/practice/screens/answer_history_screen.dart';
-import 'package:nursing_exam_poc/features/practice/screens/question_screen.dart';
-import 'package:nursing_exam_poc/features/practice/screens/score_screen.dart';
+import 'package:nursing_exam_poc/features/history/screens/history_screen.dart';
+import 'package:nursing_exam_poc/features/practice/screens/practice_question_screen.dart';
+import 'package:nursing_exam_poc/features/score/screens/score_screen.dart';
 import 'package:nursing_exam_poc/features/settings/screens/settings_screen.dart';
 import 'package:nursing_exam_poc/shared/theme/app_theme.dart';
 
